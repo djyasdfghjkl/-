@@ -69,22 +69,22 @@ const errorConfig = {
   auth: {
     tokenExpired: {
       success: false,
-      message: "Token过期",
+      message: "未登录",
       tip: "请重新登录获取新的Token",
     },
     tokenInvalid: {
       success: false,
-      message: "Token无效",
+      message: "未登录",
       tip: "请检查Token是否正确",
     },
     tokenMissing: {
       success: false,
-      message: "缺少Token",
+      message: "未登录",
       tip: "请在请求头中添加Authorization字段",
     },
     verificationFailed: {
       success: false,
-      message: "验证失败",
+      message: "未登录",
       tip: "请检查验证信息是否正确",
     },
   },

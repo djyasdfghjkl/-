@@ -6,13 +6,14 @@ const User = require("../models/User");
 const Follow = require("../models/Follow");
 const Like = require("../models/Like");
 const auth = require("../middleware/auth");
+const optionalAuth = require("../middleware/optionalAuth");
 const { role } = require("../middleware/role");
 
 // ==================== 用户端路由 ====================
 
 /**
  * @swagger
- * /api/diaries: 
+ * /api/diaries:
  *   post:
  *     summary: 创建日记
  *     description: 创建新的日记
@@ -29,43 +30,43 @@ const { role } = require("../middleware/role");
  *               - content
  *               - diary_date
  *             properties:
- *               title: 
+ *               title:
  *                 type: string
- *               content: 
+ *               content:
  *                 type: string
- *               diary_date: 
+ *               diary_date:
  *                 type: string
  *                 format: date
- *               weather: 
+ *               weather:
  *                 type: string
- *               mood: 
+ *               mood:
  *                 type: string
- *               signature: 
+ *               signature:
  *                 type: string
- *               location: 
+ *               location:
  *                 type: string
- *               location_coords: 
+ *               location_coords:
  *                 type: object
  *                 properties:
- *                   lat: 
+ *                   lat:
  *                     type: number
- *                   lng: 
+ *                   lng:
  *                     type: number
- *               cover: 
+ *               cover:
  *                 type: string
- *               images: 
+ *               images:
  *                 type: array
- *                 items: 
+ *                 items:
  *                   type: string
- *               tags: 
+ *               tags:
  *                 type: array
- *                 items: 
+ *                 items:
  *                   type: string
- *               is_public: 
+ *               is_public:
  *                 type: boolean
- *               is_top: 
+ *               is_top:
  *                 type: boolean
- *               event_id: 
+ *               event_id:
  *                 type: string
  *     responses:
  *       201:
@@ -79,22 +80,15 @@ router.post("/diaries", auth, async (ctx) => {
   try {
     console.log("[创建日记请求]", ctx.request.body);
     const user = ctx.state.user;
-    const { title, content, diary_date, weather, mood, signature, location, location_coords, cover, images, tags, is_public, is_top, event_id } = ctx.request.body;
-
-    if (!title || !content || !diary_date) {
-      console.log("[创建日记失败]", "缺少必要参数");
-      ctx.status = 400;
-      ctx.body = { success: false, message: "缺少必要参数" };
-      return;
-    }
-
-    const diary = new Diary({
-      user_id: user._id,
+    const {
       title,
       content,
+      diary,
       diary_date,
+      date,
       weather,
       mood,
+      emotion,
       signature,
       location,
       location_coords,
@@ -103,17 +97,64 @@ router.post("/diaries", auth, async (ctx) => {
       tags,
       is_public,
       is_top,
-      event_id
+      event_id,
+    } = ctx.request.body;
+
+    let finalDiaryDate = diary_date || diary || date;
+    if (finalDiaryDate && finalDiaryDate.includes("T")) {
+      finalDiaryDate = finalDiaryDate.split("T")[0];
+    }
+    const finalMood = mood || emotion;
+
+    let finalTags = tags;
+    if (typeof tags === "string") {
+      finalTags = tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t);
+    }
+
+    const missingParams = [];
+    if (!title) missingParams.push("title");
+    if (!content) missingParams.push("content");
+    if (!finalDiaryDate) missingParams.push("diary_date (或 diary, date)");
+
+    if (missingParams.length > 0) {
+      console.log("[创建日记失败]", "缺少必要参数:", missingParams);
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        message: `缺少必要参数: ${missingParams.join(", ")}`,
+      };
+      return;
+    }
+
+    const newDiary = new Diary({
+      user_id: user._id,
+      title,
+      content,
+      diary_date: finalDiaryDate,
+      weather,
+      mood: finalMood,
+      signature,
+      location,
+      location_coords,
+      cover,
+      images,
+      tags: finalTags,
+      is_public,
+      is_top,
+      event_id,
     });
 
-    await diary.save();
+    await newDiary.save();
 
     console.log("[创建日记成功]", `用户: ${user.username}, 标题: ${title}`);
     ctx.status = 201;
     ctx.body = {
       success: true,
       message: "日记创建成功",
-      data: diary
+      data: newDiary,
     };
   } catch (error) {
     console.error("[创建日记错误]:", error);
@@ -125,7 +166,7 @@ router.post("/diaries", auth, async (ctx) => {
 
 /**
  * @swagger
- * /api/diaries: 
+ * /api/diaries:
  *   get:
  *     summary: 获取日记列表
  *     description: 获取当前用户的日记列表
@@ -160,11 +201,11 @@ router.get("/diaries", auth, async (ctx) => {
   try {
     const user = ctx.state.user;
     console.log("[获取日记列表请求]", `用户: ${user.username}`);
-    const { page = 1, per_page = 10, tag, mood } = ctx.query;
+    const { page = 1, per_page = 10, tag, mood, keyword } = ctx.query;
 
     const query = {
       user_id: user._id,
-      status: 1
+      status: 1,
     };
 
     if (tag) {
@@ -173,6 +214,13 @@ router.get("/diaries", auth, async (ctx) => {
 
     if (mood) {
       query.mood = mood;
+    }
+
+    if (keyword) {
+      query.$or = [
+        { title: { $regex: keyword, $options: "i" } },
+        { content: { $regex: keyword, $options: "i" } },
+      ];
     }
 
     const total = await Diary.countDocuments(query);
@@ -189,21 +237,24 @@ router.get("/diaries", auth, async (ctx) => {
         total,
         page: parseInt(page),
         per_page: parseInt(per_page),
-        total_pages: Math.ceil(total / per_page)
-      }
+        total_pages: Math.ceil(total / per_page),
+      },
     };
   } catch (error) {
     console.error("[获取日记列表错误]:", error);
     console.error("[错误堆栈]:", error.stack);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取日记列表失败：" + error.message };
+    ctx.body = {
+      success: false,
+      message: "获取日记列表失败：" + error.message,
+    };
   }
 });
 
 // 广场相关路由
 /**
  * @swagger
- * /api/diaries/square: 
+ * /api/diaries/square:
  *   get:
  *     summary: 获取广场日记
  *     description: 根据类型获取广场日记列表
@@ -232,70 +283,66 @@ router.get("/diaries", auth, async (ctx) => {
  *       401:
  *         description: 未认证
  */
-router.get("/diaries/square", auth, async (ctx) => {
+router.get("/diaries/square", optionalAuth, async (ctx) => {
   try {
     console.log("[广场路由] 请求到达 /diaries/square");
     const user = ctx.state.user;
-    console.log("[广场路由] 用户ID:", user._id);
-    
+    console.log("[广场路由] 用户ID:", user ? user._id : "未登录");
+
     const { page = 1, pageSize = 10, type = "推荐" } = ctx.query;
     console.log("[广场路由] 参数:", { page, pageSize, type });
-    
+
     let diaries;
     let query = {
       is_public: true,
-      status: 1
+      status: 1,
     };
     console.log("[广场路由] 查询条件:", query);
-    
-    // 测试数据 - 创建一些测试日记
-    if (true) {
-      console.log("[广场路由] 创建测试日记");
-      const testDiary = new Diary({
-        user_id: user._id,
-        title: '测试日记',
-        content: '这是一篇测试日记，用于测试广场功能。',
-        diary_date: new Date().toISOString().split('T')[0],
-        is_public: true,
-        status: 1,
-        like_count: 0,
-        comment_count: 0,
-        share_count: 0,
-        score: 0
-      });
-      await testDiary.save();
-      console.log("[广场路由] 测试日记创建成功");
-    }
-    
+
     // 根据类型获取日记
     console.log("[广场路由] 根据类型获取日记:", type);
     switch (type) {
       case "推荐":
         diaries = await Diary.find(query)
-          .populate('user_id', 'id nickname avatar city')
+          .populate("user_id", "id nickname avatar city")
           .sort({ score: -1, created_at: -1 })
           .skip((page - 1) * pageSize)
           .limit(parseInt(pageSize));
         break;
       case "热门":
         diaries = await Diary.find(query)
-          .populate('user_id', 'id nickname avatar city')
+          .populate("user_id", "id nickname avatar city")
           .sort({ like_count: -1, comment_count: -1, created_at: -1 })
           .skip((page - 1) * pageSize)
           .limit(parseInt(pageSize));
         break;
       case "最新":
         diaries = await Diary.find(query)
-          .populate('user_id', 'id nickname avatar city')
+          .populate("user_id", "id nickname avatar city")
           .sort({ created_at: -1 })
           .skip((page - 1) * pageSize)
           .limit(parseInt(pageSize));
         break;
       case "关注":
+        // 未登录用户返回空数组
+        if (!user) {
+          ctx.body = {
+            success: true,
+            data: [],
+            pagination: {
+              page: parseInt(page),
+              pageSize: parseInt(pageSize),
+              total: 0,
+            },
+            message: "请先登录查看关注内容",
+          };
+          return;
+        }
+
         // 获取用户关注的用户ID列表
         const follows = await Follow.find({ follower_id: user._id });
-        const followingIds = follows.map(follow => follow.following_id);
-        
+        const followingIds = follows.map((follow) => follow.following_id);
+
         if (followingIds.length === 0) {
           ctx.body = {
             success: true,
@@ -303,22 +350,37 @@ router.get("/diaries/square", auth, async (ctx) => {
             pagination: {
               page: parseInt(page),
               pageSize: parseInt(pageSize),
-              total: 0
-            }
+              total: 0,
+            },
           };
           return;
         }
-        
-        diaries = await Diary.find({ 
+
+        diaries = await Diary.find({
           user_id: { $in: followingIds },
-          ...query 
+          ...query,
         })
-          .populate('user_id', 'id nickname avatar city')
+          .populate("user_id", "id nickname avatar city")
           .sort({ created_at: -1 })
           .skip((page - 1) * pageSize)
           .limit(parseInt(pageSize));
         break;
       case "同城":
+        // 未登录用户返回空数组
+        if (!user) {
+          ctx.body = {
+            success: true,
+            data: [],
+            pagination: {
+              page: parseInt(page),
+              pageSize: parseInt(pageSize),
+              total: 0,
+            },
+            message: "请先登录查看同城内容",
+          };
+          return;
+        }
+
         // 获取用户所在城市
         const currentUser = await User.findById(user._id);
         if (!currentUser.city) {
@@ -328,91 +390,113 @@ router.get("/diaries/square", auth, async (ctx) => {
             pagination: {
               page: parseInt(page),
               pageSize: parseInt(pageSize),
-              total: 0
+              total: 0,
             },
-            message: '请先设置您的城市信息'
+            message: "请先设置您的城市信息",
           };
           return;
         }
-        
+
         // 获取同城用户的日记
         const allDiaries = await Diary.find(query)
-          .populate('user_id', 'id nickname avatar city')
+          .populate("user_id", "id nickname avatar city")
           .sort({ created_at: -1 });
-        
+
         // 过滤出同城日记
-        const localDiaries = allDiaries.filter(diary => 
-          diary.user_id.city && diary.user_id.city === currentUser.city
+        const localDiaries = allDiaries.filter(
+          (diary) =>
+            diary.user_id.city && diary.user_id.city === currentUser.city,
         );
-        
+
         // 分页
         diaries = localDiaries.slice((page - 1) * pageSize, page * pageSize);
         break;
       default:
         diaries = await Diary.find(query)
-          .populate('user_id', 'id nickname avatar city')
+          .populate("user_id", "id nickname avatar city")
           .sort({ score: -1, created_at: -1 })
           .skip((page - 1) * pageSize)
           .limit(parseInt(pageSize));
     }
-    
+
     console.log("[广场路由] 找到日记数量:", diaries.length);
-    
+
     // 处理返回数据，添加是否点赞和是否关注
-    const diaryList = await Promise.all(diaries.map(async (diary) => {
-      // 检查是否点赞
-      const isLiked = await Like.exists({ user_id: user._id, diary_id: diary._id });
-      // 检查是否关注作者
-      const isFollowed = await Follow.exists({ follower_id: user._id, following_id: diary.user_id._id });
-      
-      return {
-        id: diary._id,
-        user: {
-          id: diary.user_id._id,
-          nickname: diary.user_id.nickname,
-          avatar: diary.user_id.avatar
-        },
-        title: diary.title,
-        content: diary.content,
-        cover: diary.cover,
-        images: diary.images,
-        tags: diary.tags,
-        location: diary.location,
-        created_at: diary.created_at,
-        stats: {
-          like_count: diary.like_count,
-          comment_count: diary.comment_count,
-          share_count: diary.share_count
-        },
-        is_liked: isLiked,
-        is_followed: isFollowed
-      };
-    }));
-    
+    const diaryList = await Promise.all(
+      diaries.map(async (diary) => {
+        let isLiked = false;
+        let isFollowed = false;
+
+        // 只有登录用户才检查点赞和关注状态
+        if (user) {
+          // 检查是否点赞
+          isLiked = await Like.exists({
+            user_id: user._id,
+            diary_id: diary._id,
+          });
+          // 检查是否关注作者
+          isFollowed = await Follow.exists({
+            follower_id: user._id,
+            following_id: diary.user_id._id,
+          });
+        }
+
+        return {
+          id: diary._id,
+          user: {
+            id: diary.user_id._id,
+            nickname: diary.user_id.nickname,
+            avatar: diary.user_id.avatar,
+          },
+          title: diary.title,
+          content: diary.content,
+          cover: diary.cover,
+          images: diary.images,
+          tags: diary.tags,
+          location: diary.location,
+          created_at: diary.created_at,
+          stats: {
+            like_count: diary.like_count,
+            comment_count: diary.comment_count,
+            share_count: diary.share_count,
+          },
+          is_liked: isLiked,
+          is_followed: isFollowed,
+        };
+      }),
+    );
+
     // 计算总数
     let total = 0;
     if (type === "关注") {
-      const follows = await Follow.find({ follower_id: user._id });
-      const followingIds = follows.map(follow => follow.following_id);
-      if (followingIds.length > 0) {
-        total = await Diary.countDocuments({ 
-          user_id: { $in: followingIds },
-          ...query 
-        });
+      if (user) {
+        const follows = await Follow.find({ follower_id: user._id });
+        const followingIds = follows.map((follow) => follow.following_id);
+        if (followingIds.length > 0) {
+          total = await Diary.countDocuments({
+            user_id: { $in: followingIds },
+            ...query,
+          });
+        }
       }
     } else if (type === "同城") {
-      const currentUser = await User.findById(user._id);
-      if (currentUser.city) {
-        const allDiaries = await Diary.find(query)
-          .populate('user_id', 'city');
-        total = allDiaries.filter(diary => 
-          diary.user_id.city && diary.user_id.city === currentUser.city
-        ).length;
+      if (user) {
+        const currentUser = await User.findById(user._id);
+        if (currentUser.city) {
+          const allDiaries = await Diary.find(query).populate(
+            "user_id",
+            "city",
+          );
+          total = allDiaries.filter(
+            (diary) =>
+              diary.user_id.city && diary.user_id.city === currentUser.city,
+          ).length;
+        }
       }
     } else {
       total = await Diary.countDocuments(query);
     }
-    
+
     console.log("[获取广场日记成功]", `共 ${total} 篇日记`);
     ctx.body = {
       success: true,
@@ -420,20 +504,23 @@ router.get("/diaries/square", auth, async (ctx) => {
       pagination: {
         page: parseInt(page),
         pageSize: parseInt(pageSize),
-        total: total
-      }
+        total: total,
+      },
     };
   } catch (error) {
     console.error("[获取广场日记错误]:", error);
     console.error("[错误堆栈]:", error.stack);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取广场日记失败：" + error.message };
+    ctx.body = {
+      success: false,
+      message: "获取广场日记失败：" + error.message,
+    };
   }
 });
 
 /**
  * @swagger
- * /api/diaries/{id}: 
+ * /api/diaries/{id}:
  *   get:
  *     summary: 获取日记详情
  *     description: 获取指定日记的详细信息
@@ -459,7 +546,11 @@ router.get("/diaries/:id", auth, async (ctx) => {
     const { id } = ctx.params;
     console.log("[获取日记详情请求]", `用户: ${user.username}, 日记ID: ${id}`);
 
-    const diary = await Diary.findOne({ _id: id, user_id: user._id, status: 1 });
+    const diary = await Diary.findOne({
+      _id: id,
+      user_id: user._id,
+      status: 1,
+    });
     if (!diary) {
       console.log("[获取日记详情失败]", "日记不存在");
       ctx.status = 404;
@@ -474,19 +565,22 @@ router.get("/diaries/:id", auth, async (ctx) => {
     console.log("[获取日记详情成功]", `标题: ${diary.title}`);
     ctx.body = {
       success: true,
-      data: diary
+      data: diary,
     };
   } catch (error) {
     console.error("[获取日记详情错误]:", error);
     console.error("[错误堆栈]:", error.stack);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取日记详情失败：" + error.message };
+    ctx.body = {
+      success: false,
+      message: "获取日记详情失败：" + error.message,
+    };
   }
 });
 
 /**
  * @swagger
- * /api/diaries/{id}: 
+ * /api/diaries/{id}:
  *   put:
  *     summary: 更新日记
  *     description: 更新指定日记的信息
@@ -504,43 +598,43 @@ router.get("/diaries/:id", auth, async (ctx) => {
  *           schema:
  *             type: object
  *             properties:
- *               title: 
+ *               title:
  *                 type: string
- *               content: 
+ *               content:
  *                 type: string
- *               diary_date: 
+ *               diary_date:
  *                 type: string
  *                 format: date
- *               weather: 
+ *               weather:
  *                 type: string
- *               mood: 
+ *               mood:
  *                 type: string
- *               signature: 
+ *               signature:
  *                 type: string
- *               location: 
+ *               location:
  *                 type: string
- *               location_coords: 
+ *               location_coords:
  *                 type: object
  *                 properties:
- *                   lat: 
+ *                   lat:
  *                     type: number
- *                   lng: 
+ *                   lng:
  *                     type: number
- *               cover: 
+ *               cover:
  *                 type: string
- *               images: 
+ *               images:
  *                 type: array
- *                 items: 
+ *                 items:
  *                   type: string
- *               tags: 
+ *               tags:
  *                 type: array
- *                 items: 
+ *                 items:
  *                   type: string
- *               is_public: 
+ *               is_public:
  *                 type: boolean
- *               is_top: 
+ *               is_top:
  *                 type: boolean
- *               event_id: 
+ *               event_id:
  *                 type: string
  *     responses:
  *       200:
@@ -559,7 +653,11 @@ router.put("/diaries/:id", auth, async (ctx) => {
     console.log("[更新日记请求]", `用户: ${user.username}, 日记ID: ${id}`);
     console.log("[更新日记参数]", ctx.request.body);
 
-    const diary = await Diary.findOne({ _id: id, user_id: user._id, status: 1 });
+    const diary = await Diary.findOne({
+      _id: id,
+      user_id: user._id,
+      status: 1,
+    });
     if (!diary) {
       console.log("[更新日记失败]", "日记不存在");
       ctx.status = 404;
@@ -577,7 +675,7 @@ router.put("/diaries/:id", auth, async (ctx) => {
     ctx.body = {
       success: true,
       message: "日记更新成功",
-      data: diary
+      data: diary,
     };
   } catch (error) {
     console.error("[更新日记错误]:", error);
@@ -589,7 +687,7 @@ router.put("/diaries/:id", auth, async (ctx) => {
 
 /**
  * @swagger
- * /api/diaries/{id}: 
+ * /api/diaries/{id}:
  *   delete:
  *     summary: 删除日记
  *     description: 软删除指定日记
@@ -615,7 +713,11 @@ router.delete("/diaries/:id", auth, async (ctx) => {
     const { id } = ctx.params;
     console.log("[删除日记请求]", `用户: ${user.username}, 日记ID: ${id}`);
 
-    const diary = await Diary.findOne({ _id: id, user_id: user._id, status: 1 });
+    const diary = await Diary.findOne({
+      _id: id,
+      user_id: user._id,
+      status: 1,
+    });
     if (!diary) {
       console.log("[删除日记失败]", "日记不存在");
       ctx.status = 404;
@@ -630,7 +732,7 @@ router.delete("/diaries/:id", auth, async (ctx) => {
     console.log("[删除日记成功]", `标题: ${diary.title}`);
     ctx.body = {
       success: true,
-      message: "日记删除成功"
+      message: "日记删除成功",
     };
   } catch (error) {
     console.error("[删除日记错误]:", error);
@@ -644,7 +746,7 @@ router.delete("/diaries/:id", auth, async (ctx) => {
 
 /**
  * @swagger
- * /api/admin/diaries: 
+ * /api/admin/diaries:
  *   get:
  *     summary: 获取所有日记
  *     description: 获取所有用户的日记列表（仅管理员可用）
@@ -677,53 +779,61 @@ router.delete("/diaries/:id", auth, async (ctx) => {
  *       403:
  *         description: 权限不足
  */
-adminRouter.get("/diaries", auth, role(["admin", "superadmin"]), async (ctx) => {
-  try {
-    const adminUser = ctx.state.user;
-    console.log("[管理端获取日记列表请求]", `管理员: ${adminUser.username}`);
-    const { page = 1, per_page = 10, user_id, is_public } = ctx.query;
+adminRouter.get(
+  "/diaries",
+  auth,
+  role(["admin", "superadmin"]),
+  async (ctx) => {
+    try {
+      const adminUser = ctx.state.user;
+      console.log("[管理端获取日记列表请求]", `管理员: ${adminUser.username}`);
+      const { page = 1, per_page = 10, user_id, is_public } = ctx.query;
 
-    const query = {
-      status: 1
-    };
+      const query = {
+        status: 1,
+      };
 
-    if (user_id) {
-      query.user_id = user_id;
-    }
-
-    if (is_public !== undefined) {
-      query.is_public = is_public === 'true';
-    }
-
-    const total = await Diary.countDocuments(query);
-    const diaries = await Diary.find(query)
-      .populate('user_id', 'username email')
-      .sort({ is_top: -1, diary_date: -1, updatedAt: -1 })
-      .skip((page - 1) * per_page)
-      .limit(parseInt(per_page));
-
-    console.log("[管理端获取日记列表成功]", `共 ${total} 篇日记`);
-    ctx.body = {
-      success: true,
-      data: diaries,
-      pagination: {
-        total,
-        page: parseInt(page),
-        per_page: parseInt(per_page),
-        total_pages: Math.ceil(total / per_page)
+      if (user_id) {
+        query.user_id = user_id;
       }
-    };
-  } catch (error) {
-    console.error("[管理端获取日记列表错误]:", error);
-    console.error("[错误堆栈]:", error.stack);
-    ctx.status = 500;
-    ctx.body = { success: false, message: "获取日记列表失败：" + error.message };
-  }
-});
+
+      if (is_public !== undefined) {
+        query.is_public = is_public === "true";
+      }
+
+      const total = await Diary.countDocuments(query);
+      const diaries = await Diary.find(query)
+        .populate("user_id", "username email")
+        .sort({ is_top: -1, diary_date: -1, updatedAt: -1 })
+        .skip((page - 1) * per_page)
+        .limit(parseInt(per_page));
+
+      console.log("[管理端获取日记列表成功]", `共 ${total} 篇日记`);
+      ctx.body = {
+        success: true,
+        data: diaries,
+        pagination: {
+          total,
+          page: parseInt(page),
+          per_page: parseInt(per_page),
+          total_pages: Math.ceil(total / per_page),
+        },
+      };
+    } catch (error) {
+      console.error("[管理端获取日记列表错误]:", error);
+      console.error("[错误堆栈]:", error.stack);
+      ctx.status = 500;
+      ctx.body = {
+        success: false,
+        message: "获取日记列表失败：" + error.message,
+      };
+    }
+  },
+);
 
 /**
  * @swagger
- * /api/admin/diaries/{id}: 
+ * /api/admin/diaries/{id}:
  *   get:
  *     summary: 获取日记详情
  *     description: 获取指定日记的详细信息（仅管理员可用）
@@ -745,36 +855,50 @@ adminRouter.get("/diaries", auth, role(["admin", "superadmin"]), async (ctx) => 
  *       404:
  *         description: 日记不存在
  */
-adminRouter.get("/diaries/:id", auth, role(["admin", "superadmin"]), async (ctx) => {
-  try {
-    const adminUser = ctx.state.user;
-    const { id } = ctx.params;
-    console.log("[管理端获取日记详情请求]", `管理员: ${adminUser.username}, 日记ID: ${id}`);
+adminRouter.get(
+  "/diaries/:id",
+  auth,
+  role(["admin", "superadmin"]),
+  async (ctx) => {
+    try {
+      const adminUser = ctx.state.user;
+      const { id } = ctx.params;
+      console.log(
+        "[管理端获取日记详情请求]",
+        `管理员: ${adminUser.username}, 日记ID: ${id}`,
+      );
 
-    const diary = await Diary.findOne({ _id: id, status: 1 }).populate('user_id', 'username email');
-    if (!diary) {
-      console.log("[管理端获取日记详情失败]", "日记不存在");
-      ctx.status = 404;
-      ctx.body = { success: false, message: "日记不存在" };
-      return;
+      const diary = await Diary.findOne({ _id: id, status: 1 }).populate(
+        "user_id",
+        "username email",
+      );
+      if (!diary) {
+        console.log("[管理端获取日记详情失败]", "日记不存在");
+        ctx.status = 404;
+        ctx.body = { success: false, message: "日记不存在" };
+        return;
+      }
+
+      console.log("[管理端获取日记详情成功]", `标题: ${diary.title}`);
+      ctx.body = {
+        success: true,
+        data: diary,
+      };
+    } catch (error) {
+      console.error("[管理端获取日记详情错误]:", error);
+      console.error("[错误堆栈]:", error.stack);
+      ctx.status = 500;
+      ctx.body = {
+        success: false,
+        message: "获取日记详情失败：" + error.message,
+      };
     }
-
-    console.log("[管理端获取日记详情成功]", `标题: ${diary.title}`);
-    ctx.body = {
-      success: true,
-      data: diary
-    };
-  } catch (error) {
-    console.error("[管理端获取日记详情错误]:", error);
-    console.error("[错误堆栈]:", error.stack);
-    ctx.status = 500;
-    ctx.body = { success: false, message: "获取日记详情失败：" + error.message };
-  }
-});
+  },
+);
 
 /**
  * @swagger
- * /api/admin/diaries/{id}: 
+ * /api/admin/diaries/{id}:
  *   delete:
  *     summary: 删除日记
  *     description: 软删除指定日记（仅管理员可用）
@@ -796,36 +920,44 @@ adminRouter.get("/diaries/:id", auth, role(["admin", "superadmin"]), async (ctx)
  *       404:
  *         description: 日记不存在
  */
-adminRouter.delete("/diaries/:id", auth, role(["admin", "superadmin"]), async (ctx) => {
-  try {
-    const adminUser = ctx.state.user;
-    const { id } = ctx.params;
-    console.log("[管理端删除日记请求]", `管理员: ${adminUser.username}, 日记ID: ${id}`);
+adminRouter.delete(
+  "/diaries/:id",
+  auth,
+  role(["admin", "superadmin"]),
+  async (ctx) => {
+    try {
+      const adminUser = ctx.state.user;
+      const { id } = ctx.params;
+      console.log(
+        "[管理端删除日记请求]",
+        `管理员: ${adminUser.username}, 日记ID: ${id}`,
+      );
 
-    const diary = await Diary.findOne({ _id: id, status: 1 });
-    if (!diary) {
-      console.log("[管理端删除日记失败]", "日记不存在");
-      ctx.status = 404;
-      ctx.body = { success: false, message: "日记不存在" };
-      return;
+      const diary = await Diary.findOne({ _id: id, status: 1 });
+      if (!diary) {
+        console.log("[管理端删除日记失败]", "日记不存在");
+        ctx.status = 404;
+        ctx.body = { success: false, message: "日记不存在" };
+        return;
+      }
+
+      // 软删除
+      diary.status = 0;
+      await diary.save();
+
+      console.log("[管理端删除日记成功]", `标题: ${diary.title}`);
+      ctx.body = {
+        success: true,
+        message: "日记删除成功",
+      };
+    } catch (error) {
+      console.error("[管理端删除日记错误]:", error);
+      console.error("[错误堆栈]:", error.stack);
+      ctx.status = 500;
+      ctx.body = { success: false, message: "删除日记失败：" + error.message };
     }
-
-    // 软删除
-    diary.status = 0;
-    await diary.save();
-
-    console.log("[管理端删除日记成功]", `标题: ${diary.title}`);
-    ctx.body = {
-      success: true,
-      message: "日记删除成功"
-    };
-  } catch (error) {
-    console.error("[管理端删除日记错误]:", error);
-    console.error("[错误堆栈]:", error.stack);
-    ctx.status = 500;
-    ctx.body = { success: false, message: "删除日记失败：" + error.message };
-  }
-});
+  },
+);
 
 // 注册路由前缀
 router.prefix("/api");
@@ -833,5 +965,5 @@ adminRouter.prefix("/api/admin");
 
 module.exports = {
   router,
-  adminRouter
+  adminRouter,
 };

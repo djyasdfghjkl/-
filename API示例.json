@@ -1,0 +1,812 @@
+{
+  "baseUrl": "http://localhost:3000",
+  "description": "API接口示例文件",
+  "endpoints": [
+    {
+      "name": "测试连接",
+      "method": "GET",
+      "path": "/api/test",
+      "description": "测试接口是否正常工作"
+    },
+    {
+      "name": "用户登录",
+      "method": "POST",
+      "path": "/api/users/login",
+      "description": "用户登录获取JWT令牌",
+      "body": {
+        "email": "test@example.com",
+        "password": "123456"
+      }
+    },
+    {
+      "name": "用户注册",
+      "method": "POST",
+      "path": "/api/users/register",
+      "description": "创建新用户账号",
+      "body": {
+        "email": "newuser@example.com",
+        "password": "123456",
+        "nickname": "新用户",
+        "code": "123456"
+      }
+    },
+    {
+      "name": "发送验证码",
+      "method": "POST",
+      "path": "/api/users/send-code",
+      "description": "发送验证码到指定邮箱",
+      "body": {
+        "email": "user@example.com",
+        "type": "register"
+      }
+    },
+    {
+      "name": "获取用户信息",
+      "method": "GET",
+      "path": "/api/users/profile",
+      "description": "获取当前登录用户的个人信息",
+      "authRequired": true
+    },
+    {
+      "name": "更新用户信息",
+      "method": "PUT",
+      "path": "/api/users/profile",
+      "description": "更新当前登录用户的个人信息",
+      "authRequired": true,
+      "body": {
+        "nickname": "新昵称",
+        "avatar": "https://example.com/avatar.jpg"
+      }
+    },
+    {
+      "name": "重置密码",
+      "method": "POST",
+      "path": "/api/users/reset-password",
+      "description": "使用验证码重置密码",
+      "body": {
+        "email": "user@example.com",
+        "code": "123456",
+        "newPassword": "newpassword123"
+      }
+    },
+    {
+      "name": "微信登录",
+      "method": "POST",
+      "path": "/api/users/wechat-login",
+      "description": "使用微信code登录",
+      "body": {
+        "code": "WECHAT_CODE_HERE"
+      }
+    },
+    {
+      "name": "微信绑定",
+      "method": "POST",
+      "path": "/api/users/wechat-bind",
+      "description": "绑定微信账号到当前用户",
+      "authRequired": true,
+      "body": {
+        "code": "WECHAT_CODE_HERE"
+      }
+    },
+    {
+      "name": "获取用户统计",
+      "method": "GET",
+      "path": "/api/users/stats",
+      "description": "获取当前用户的统计数据",
+      "authRequired": true
+    },
+    {
+      "name": "获取日记列表",
+      "method": "GET",
+      "path": "/api/diaries",
+      "description": "获取当前用户的日记列表",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 10
+      }
+    },
+    {
+      "name": "创建日记",
+      "method": "POST",
+      "path": "/api/diaries",
+      "description": "创建新的日记",
+      "authRequired": true,
+      "body": {
+        "title": "我的第一篇日记",
+        "content": "今天天气真好！",
+        "diary_date": "2026-03-14",
+        "weather": "晴天",
+        "mood": "开心",
+        "location": "北京",
+        "tags": ["生活", "日常"]
+      }
+    },
+    {
+      "name": "创建日记（兼容格式）",
+      "method": "POST",
+      "path": "/api/diaries",
+      "description": "创建日记的另一种参数格式",
+      "authRequired": true,
+      "body": {
+        "title": "等一下",
+        "content": "你好\n\n爱睡觉跟大家说大好时机",
+        "date": "2026-03-14T08:17:49.532Z",
+        "emotion": 0,
+        "location": "11",
+        "tags": "工作"
+      }
+    },
+    {
+      "name": "获取日记详情",
+      "method": "GET",
+      "path": "/api/diaries/{id}",
+      "description": "获取指定日记的详细信息",
+      "authRequired": true
+    },
+    {
+      "name": "更新日记",
+      "method": "PUT",
+      "path": "/api/diaries/{id}",
+      "description": "更新指定日记的信息",
+      "authRequired": true,
+      "body": {
+        "title": "更新后的标题",
+        "content": "更新后的内容"
+      }
+    },
+    {
+      "name": "删除日记",
+      "method": "DELETE",
+      "path": "/api/diaries/{id}",
+      "description": "删除指定日记",
+      "authRequired": true
+    },
+    {
+      "name": "获取广场日记",
+      "method": "GET",
+      "path": "/api/diaries/square",
+      "description": "获取广场的公开日记",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "pageSize": 10,
+        "type": "推荐"
+      }
+    },
+    {
+      "name": "使用兑换码",
+      "method": "POST",
+      "path": "/api/redeem/use",
+      "description": "使用兑换码获取相应权益",
+      "authRequired": true,
+      "body": {
+        "code": "REDEEM_CODE_HERE"
+      }
+    },
+    {
+      "name": "生成兑换码（管理员）",
+      "method": "POST",
+      "path": "/api/admin/redeem/generate",
+      "description": "管理员生成兑换码",
+      "authRequired": true,
+      "adminRequired": true,
+      "body": {
+        "type": "vip",
+        "value": 30,
+        "count": 5,
+        "expireDays": 30
+      }
+    },
+    {
+      "name": "获取兑换码列表（管理员）",
+      "method": "GET",
+      "path": "/api/admin/redeem/codes",
+      "description": "管理员获取所有兑换码",
+      "authRequired": true,
+      "adminRequired": true,
+      "query": {
+        "type": "vip",
+        "isUsed": false
+      }
+    },
+    {
+      "name": "充值VIP",
+      "method": "POST",
+      "path": "/api/recharge/vip",
+      "description": "充值VIP会员",
+      "authRequired": true,
+      "body": {
+        "duration": 30
+      }
+    },
+    {
+      "name": "充值SVIP",
+      "method": "POST",
+      "path": "/api/recharge/svip",
+      "description": "充值SVIP会员",
+      "authRequired": true,
+      "body": {
+        "duration": 30
+      }
+    },
+    {
+      "name": "充值余额",
+      "method": "POST",
+      "path": "/api/recharge/balance",
+      "description": "充值账户余额",
+      "authRequired": true,
+      "body": {
+        "amount": 100
+      }
+    },
+    {
+      "name": "获取充值记录",
+      "method": "GET",
+      "path": "/api/recharge/records",
+      "description": "获取当前用户的充值记录",
+      "authRequired": true
+    },
+    {
+      "name": "上传文件",
+      "method": "POST",
+      "path": "/api/files/upload",
+      "description": "上传文件",
+      "authRequired": true,
+      "formData": {
+        "file": "/path/to/your/file.jpg",
+        "description": "文件描述",
+        "type": "user_image"
+      }
+    },
+    {
+      "name": "获取用户上传的文件",
+      "method": "GET",
+      "path": "/api/files",
+      "description": "获取当前用户上传的文件列表",
+      "authRequired": true
+    },
+    {
+      "name": "获取当前用户的勋章列表",
+      "method": "GET",
+      "path": "/api/medals/user",
+      "description": "获取当前用户已获得的所有勋章",
+      "authRequired": true
+    },
+    {
+      "name": "获取所有勋章列表",
+      "method": "GET",
+      "path": "/api/medals",
+      "description": "获取系统中所有可获得的勋章"
+    },
+    {
+      "name": "获取单个勋章详情",
+      "method": "GET",
+      "path": "/api/medals/{id}",
+      "description": "根据勋章ID获取勋章详情"
+    },
+    {
+      "name": "管理员手动颁发勋章",
+      "method": "POST",
+      "path": "/api/admin/medals/award",
+      "description": "管理员为指定用户颁发勋章",
+      "authRequired": true,
+      "adminRequired": true,
+      "body": {
+        "userId": "USER_ID_HERE",
+        "medalId": "MEDAL_ID_HERE",
+        "reason": "表现优异"
+      }
+    },
+    {
+      "name": "获取所有字典",
+      "method": "GET",
+      "path": "/api/dictionaries",
+      "description": "获取系统中所有字典数据",
+      "authRequired": true
+    },
+    {
+      "name": "获取指定类型字典",
+      "method": "GET",
+      "path": "/api/dictionaries/{type}",
+      "description": "根据类型获取字典数据",
+      "authRequired": true
+    },
+    {
+      "name": "创建字典（管理员）",
+      "method": "POST",
+      "path": "/api/admin/dictionaries",
+      "description": "创建新的字典",
+      "authRequired": true,
+      "adminRequired": true,
+      "body": {
+        "type": "weather",
+        "items": [
+          {
+            "key": "sunny",
+            "value": "晴天",
+            "description": "晴天"
+          }
+        ]
+      }
+    },
+    {
+      "name": "更新字典（管理员）",
+      "method": "PUT",
+      "path": "/api/admin/dictionaries/{type}",
+      "description": "更新指定类型的字典",
+      "authRequired": true,
+      "adminRequired": true,
+      "body": {
+        "items": [
+          {
+            "key": "sunny",
+            "value": "晴天",
+            "description": "晴天"
+          }
+        ]
+      }
+    },
+    {
+      "name": "删除字典（管理员）",
+      "method": "DELETE",
+      "path": "/api/admin/dictionaries/{type}",
+      "description": "删除指定类型的字典",
+      "authRequired": true,
+      "adminRequired": true
+    },
+    {
+      "name": "获取表情包分类列表",
+      "method": "GET",
+      "path": "/api/emoji/categories",
+      "description": "获取所有表情包分类"
+    },
+    {
+      "name": "获取表情包列表",
+      "method": "GET",
+      "path": "/api/emojis",
+      "description": "获取表情包列表，支持分类、搜索",
+      "authOptional": true,
+      "query": {
+        "page": 1,
+        "page_size": 20,
+        "category_id": "CATEGORY_ID_HERE",
+        "keyword": "开心"
+      }
+    },
+    {
+      "name": "获取表情包详情",
+      "method": "GET",
+      "path": "/api/emojis/{uuid}",
+      "description": "获取指定表情包的详细信息"
+    },
+    {
+      "name": "获取热门表情",
+      "method": "GET",
+      "path": "/api/emojis/trending",
+      "description": "获取热门表情包列表"
+    },
+    {
+      "name": "获取用户收藏的表情包",
+      "method": "GET",
+      "path": "/api/user/emojis/favorites",
+      "description": "获取用户收藏的表情包列表",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "page_size": 20
+      }
+    },
+    {
+      "name": "收藏/取消收藏表情包",
+      "method": "POST",
+      "path": "/api/user/emojis/favorite",
+      "description": "收藏或取消收藏表情包",
+      "authRequired": true,
+      "body": {
+        "emoji_uuid": "EMOJI_UUID_HERE"
+      }
+    },
+    {
+      "name": "记录表情使用",
+      "method": "POST",
+      "path": "/api/user/emojis/usage",
+      "description": "记录表情包的使用",
+      "authRequired": true,
+      "body": {
+        "emoji_uuid": "EMOJI_UUID_HERE"
+      }
+    },
+    {
+      "name": "获取用户最近使用的表情",
+      "method": "GET",
+      "path": "/api/user/emojis/recent",
+      "description": "获取用户最近使用的表情包",
+      "authRequired": true,
+      "query": {
+        "limit": 20
+      }
+    },
+    {
+      "name": "获取用户自定义表情包",
+      "method": "GET",
+      "path": "/api/user/emojis/custom",
+      "description": "获取用户自定义的表情包",
+      "authRequired": true
+    },
+    {
+      "name": "删除自定义表情包",
+      "method": "DELETE",
+      "path": "/api/user/emojis/custom/{id}",
+      "description": "删除用户自定义的表情包",
+      "authRequired": true
+    },
+    {
+      "name": "创建官方表情包（管理员）",
+      "method": "POST",
+      "path": "/api/admin/emojis",
+      "description": "管理员创建官方表情包",
+      "authRequired": true,
+      "adminRequired": true,
+      "body": {
+        "name": "开心",
+        "description": "开心表情",
+        "type": 1,
+        "url": "https://example.com/emoji.png",
+        "thumbnail_url": "https://example.com/emoji_thumb.png",
+        "tags": ["开心", "快乐"]
+      }
+    },
+    {
+      "name": "更新表情包（管理员）",
+      "method": "PUT",
+      "path": "/api/admin/emojis/{uuid}",
+      "description": "管理员更新表情包信息",
+      "authRequired": true,
+      "adminRequired": true,
+      "body": {
+        "name": "更新后的表情名称"
+      }
+    },
+    {
+      "name": "删除表情包（管理员）",
+      "method": "DELETE",
+      "path": "/api/admin/emojis/{uuid}",
+      "description": "管理员删除表情包",
+      "authRequired": true,
+      "adminRequired": true
+    },
+    {
+      "name": "创建表情分类（管理员）",
+      "method": "POST",
+      "path": "/api/admin/emoji/categories",
+      "description": "管理员创建表情分类",
+      "authRequired": true,
+      "adminRequired": true,
+      "body": {
+        "name": "热门推荐",
+        "icon": "/static/icons/hot.png",
+        "sort_order": 1
+      }
+    },
+    {
+      "name": "获取推荐日记",
+      "method": "GET",
+      "path": "/api/square/recommend",
+      "description": "获取广场推荐的日记",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 10
+      }
+    },
+    {
+      "name": "获取热门日记",
+      "method": "GET",
+      "path": "/api/square/hot",
+      "description": "获取广场热门的日记",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 10,
+        "sort_by": "likes"
+      }
+    },
+    {
+      "name": "获取最新日记",
+      "method": "GET",
+      "path": "/api/square/latest",
+      "description": "获取广场最新的日记",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 10
+      }
+    },
+    {
+      "name": "获取关注用户的日记",
+      "method": "GET",
+      "path": "/api/square/following",
+      "description": "获取关注用户发布的日记",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 10
+      }
+    },
+    {
+      "name": "获取同城日记",
+      "method": "GET",
+      "path": "/api/square/local",
+      "description": "获取同城用户发布的日记",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 10
+      }
+    },
+    {
+      "name": "点赞日记",
+      "method": "POST",
+      "path": "/api/square/like",
+      "description": "为指定日记点赞",
+      "authRequired": true,
+      "body": {
+        "diary_id": "DIARY_ID_HERE"
+      }
+    },
+    {
+      "name": "取消点赞",
+      "method": "POST",
+      "path": "/api/square/unlike",
+      "description": "取消对指定日记的点赞",
+      "authRequired": true,
+      "body": {
+        "diary_id": "DIARY_ID_HERE"
+      }
+    },
+    {
+      "name": "评论日记",
+      "method": "POST",
+      "path": "/api/square/comment",
+      "description": "为指定日记添加评论",
+      "authRequired": true,
+      "body": {
+        "diary_id": "DIARY_ID_HERE",
+        "content": "写得真好！"
+      }
+    },
+    {
+      "name": "关注用户",
+      "method": "POST",
+      "path": "/api/square/follow",
+      "description": "关注指定用户",
+      "authRequired": true,
+      "body": {
+        "user_id": "USER_ID_HERE"
+      }
+    },
+    {
+      "name": "取消关注",
+      "method": "POST",
+      "path": "/api/square/unfollow",
+      "description": "取消对指定用户的关注",
+      "authRequired": true,
+      "body": {
+        "user_id": "USER_ID_HERE"
+      }
+    },
+    {
+      "name": "获取日记详情",
+      "method": "GET",
+      "path": "/api/square/detail/{diary_id}",
+      "description": "获取指定日记的详细信息",
+      "authRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 20
+      }
+    },
+    {
+      "name": "导出用户数据（管理员）",
+      "method": "GET",
+      "path": "/api/admin/export/users",
+      "description": "导出用户数据",
+      "authRequired": true,
+      "adminRequired": true,
+      "query": {
+        "format": "json",
+        "limit": 0
+      }
+    },
+    {
+      "name": "导入用户数据（管理员）",
+      "method": "POST",
+      "path": "/api/admin/import/users",
+      "description": "导入用户数据",
+      "authRequired": true,
+      "adminRequired": true,
+      "formData": {
+        "file": "/path/to/users.json"
+      }
+    },
+    {
+      "name": "导出字典数据（管理员）",
+      "method": "GET",
+      "path": "/api/admin/export/dictionaries",
+      "description": "导出字典数据",
+      "authRequired": true,
+      "adminRequired": true,
+      "query": {
+        "format": "json"
+      }
+    },
+    {
+      "name": "导出勋章数据（管理员）",
+      "method": "GET",
+      "path": "/api/admin/export/medals",
+      "description": "导出勋章数据",
+      "authRequired": true,
+      "adminRequired": true,
+      "query": {
+        "format": "json"
+      }
+    },
+    {
+      "name": "导出充值记录（管理员）",
+      "method": "GET",
+      "path": "/api/admin/export/recharge-records",
+      "description": "导出充值记录",
+      "authRequired": true,
+      "adminRequired": true,
+      "query": {
+        "format": "json"
+      }
+    },
+    {
+      "name": "导出兑换码（管理员）",
+      "method": "GET",
+      "path": "/api/admin/export/redeem-codes",
+      "description": "导出兑换码",
+      "authRequired": true,
+      "adminRequired": true,
+      "query": {
+        "format": "json"
+      }
+    },
+    {
+      "name": "导入字典数据（管理员）",
+      "method": "POST",
+      "path": "/api/admin/import/dictionaries",
+      "description": "导入字典数据",
+      "authRequired": true,
+      "adminRequired": true,
+      "formData": {
+        "file": "/path/to/dictionaries.json"
+      }
+    },
+    {
+      "name": "导入勋章数据（管理员）",
+      "method": "POST",
+      "path": "/api/admin/import/medals",
+      "description": "导入勋章数据",
+      "authRequired": true,
+      "adminRequired": true,
+      "formData": {
+        "file": "/path/to/medals.json"
+      }
+    },
+    {
+      "name": "获取所有用户（管理员）",
+      "method": "GET",
+      "path": "/api/users",
+      "description": "获取所有用户列表",
+      "authRequired": true,
+      "adminRequired": true
+    },
+    {
+      "name": "更新用户角色（管理员）",
+      "method": "PUT",
+      "path": "/api/users/{id}/role",
+      "description": "更新指定用户的角色",
+      "authRequired": true,
+      "adminRequired": true,
+      "body": {
+        "role": 1
+      }
+    },
+    {
+      "name": "获取所有日记（管理员）",
+      "method": "GET",
+      "path": "/api/admin/diaries",
+      "description": "获取所有用户的日记",
+      "authRequired": true,
+      "adminRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 10
+      }
+    },
+    {
+      "name": "获取日记详情（管理员）",
+      "method": "GET",
+      "path": "/api/admin/diaries/{id}",
+      "description": "获取指定日记的详细信息",
+      "authRequired": true,
+      "adminRequired": true
+    },
+    {
+      "name": "删除日记（管理员）",
+      "method": "DELETE",
+      "path": "/api/admin/diaries/{id}",
+      "description": "删除指定日记",
+      "authRequired": true,
+      "adminRequired": true
+    },
+    {
+      "name": "获取所有充值记录（管理员）",
+      "method": "GET",
+      "path": "/api/admin/recharge/records",
+      "description": "获取所有用户的充值记录",
+      "authRequired": true,
+      "adminRequired": true,
+      "query": {
+        "page": 1,
+        "per_page": 10
+      }
+    },
+    {
+      "name": "获取所有上传的文件（管理员）",
+      "method": "GET",
+      "path": "/api/admin/files/list",
+      "description": "获取所有用户上传的文件",
+      "authRequired": true,
+      "adminRequired": true
+    },
+    {
+      "name": "获取管理员列表（超级管理员）",
+      "method": "GET",
+      "path": "/api/admin/superadmin/admins",
+      "description": "获取所有管理员用户",
+      "authRequired": true,
+      "superAdminRequired": true
+    },
+    {
+      "name": "创建管理员（超级管理员）",
+      "method": "POST",
+      "path": "/api/admin/superadmin/admins",
+      "description": "创建新的管理员账号",
+      "authRequired": true,
+      "superAdminRequired": true,
+      "body": {
+        "username": "admin2",
+        "email": "admin2@example.com",
+        "password": "123456"
+      }
+    },
+    {
+      "name": "启用管理员账号（超级管理员）",
+      "method": "PUT",
+      "path": "/api/admin/superadmin/admins/{id}/activate",
+      "description": "启用指定的管理员账号",
+      "authRequired": true,
+      "superAdminRequired": true
+    },
+    {
+      "name": "停用管理员账号（超级管理员）",
+      "method": "PUT",
+      "path": "/api/admin/superadmin/admins/{id}/deactivate",
+      "description": "停用指定的管理员账号",
+      "authRequired": true,
+      "superAdminRequired": true
+    },
+    {
+      "name": "删除管理员（超级管理员）",
+      "method": "DELETE",
+      "path": "/api/admin/superadmin/admins/{id}",
+      "description": "删除指定的管理员账号",
+      "authRequired": true,
+      "superAdminRequired": true
+    }
+  ]
+}

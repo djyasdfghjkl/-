@@ -25,3 +25,4 @@ Thumbs.db
 # 构建文件
 dist/
 build/
+.vercel

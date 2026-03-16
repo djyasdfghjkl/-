@@ -40,7 +40,7 @@
 - **描述**：发送验证码到指定邮箱
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ----- | ------ | -- | ----------------------------------------- |
   | email | string | 是 | 邮箱地址 |
   | type | string | 是 | 验证码类型：register（注册）或 reset_password（重置密码） |
 - **返回结果**：
@@ -57,7 +57,7 @@
 - **描述**：创建新用户
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -------- | ------ | -- | -------------------------------- |
   | username | string | 否 | 用户名（如果不提供，将使用nickname作为username） |
   | nickname | string | 是 | 昵称 |
   | email | string | 是 | 邮箱地址 |
@@ -77,7 +77,7 @@
 - **描述**：用户登录并获取JWT令牌
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -------- | ------ | -- | ---- |
   | email | string | 是 | 邮箱地址 |
   | password | string | 是 | 密码 |
 - **返回结果**：
@@ -172,7 +172,7 @@
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | --------------- |
   | username | string | 否 | 用户名 |
   | nickname | string | 否 | 昵称 |
   | password | string | 否 | 密码 |
@@ -236,7 +236,7 @@
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---- | ------ | -- | ----------------------------- |
   | role | number | 是 | 新角色：0=普通用户，1=VIP，2=SVIP，3=管理员 |
 - **返回结果**：
   ```json
@@ -257,7 +257,7 @@
 - **描述**：使用验证码重置密码
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ----------- | ------ | -- | ---- |
   | email | string | 是 | 邮箱地址 |
   | code | string | 是 | 验证码 |
   | newPassword | string | 是 | 新密码 |
@@ -266,6 +266,206 @@
   {
     "success": true,
     "message": "密码重置成功"
+  }
+  ```
+
+#### 1.9 抖音一键登录
+
+- **路径**：`POST /api/users/douyin-login`
+- **描述**：使用抖音code进行登录或注册
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | ---- | ------ | -- | ---------- |
+  | code | string | 是 | 抖音登录code |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "message": "抖音登录成功，新用户注册",
+    "data": {
+      "user": {
+        "id": "用户ID",
+        "uuid": "用户UUID",
+        "username": "用户名",
+        "nickname": "昵称",
+        "email": "邮箱",
+        "phone": "手机号",
+        "avatar": "头像URL",
+        "role": 0, // 0=普通用户，1=VIP，2=SVIP，3=管理员，4=超级管理员
+        "status": 1, // 0=禁用，1=正常，2=冻结
+        "vip_expire": "VIP到期时间",
+        "vipExpireDate": "VIP到期时间",
+        "svipExpireDate": "SVIP到期时间",
+        "balance": 100,
+        "diary_count": 5,
+        "word_count": 1000,
+        "like_count": 20,
+        "follower_count": 10,
+        "following_count": 8,
+        "settings": {...},
+        "medals": [...],
+        "totalLoginDays": 10,
+        "consecutiveLoginDays": 5,
+        "last_login_at": "最后登录时间",
+        "last_login_ip": "最后登录IP",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间"
+      },
+      "token": "JWT令牌",
+      "isNewUser": true,
+      "loginStats": {...},
+      "awardedMedals": [...]
+    }
+  }
+  ```
+
+#### 1.10 快手一键登录
+
+- **路径**：`POST /api/users/kuaishou-login`
+- **描述**：使用快手code进行登录或注册
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | ---- | ------ | -- | ---------- |
+  | code | string | 是 | 快手登录code |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "message": "快手登录成功，新用户注册",
+    "data": {
+      "user": {
+        "id": "用户ID",
+        "uuid": "用户UUID",
+        "username": "用户名",
+        "nickname": "昵称",
+        "email": "邮箱",
+        "phone": "手机号",
+        "avatar": "头像URL",
+        "role": 0, // 0=普通用户，1=VIP，2=SVIP，3=管理员，4=超级管理员
+        "status": 1, // 0=禁用，1=正常，2=冻结
+        "vip_expire": "VIP到期时间",
+        "vipExpireDate": "VIP到期时间",
+        "svipExpireDate": "SVIP到期时间",
+        "balance": 100,
+        "diary_count": 5,
+        "word_count": 1000,
+        "like_count": 20,
+        "follower_count": 10,
+        "following_count": 8,
+        "settings": {...},
+        "medals": [...],
+        "totalLoginDays": 10,
+        "consecutiveLoginDays": 5,
+        "last_login_at": "最后登录时间",
+        "last_login_ip": "最后登录IP",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间"
+      },
+      "token": "JWT令牌",
+      "isNewUser": true,
+      "loginStats": {...},
+      "awardedMedals": [...]
+    }
+  }
+  ```
+
+#### 1.11 支付宝一键登录
+
+- **路径**：`POST /api/users/alipay-login`
+- **描述**：使用支付宝code进行登录或注册
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | ---- | ------ | -- | ---------- |
+  | code | string | 是 | 支付宝登录code |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "message": "支付宝登录成功，新用户注册",
+    "data": {
+      "user": {
+        "id": "用户ID",
+        "uuid": "用户UUID",
+        "username": "用户名",
+        "nickname": "昵称",
+        "email": "邮箱",
+        "phone": "手机号",
+        "avatar": "头像URL",
+        "role": 0, // 0=普通用户，1=VIP，2=SVIP，3=管理员，4=超级管理员
+        "status": 1, // 0=禁用，1=正常，2=冻结
+        "vip_expire": "VIP到期时间",
+        "vipExpireDate": "VIP到期时间",
+        "svipExpireDate": "SVIP到期时间",
+        "balance": 100,
+        "diary_count": 5,
+        "word_count": 1000,
+        "like_count": 20,
+        "follower_count": 10,
+        "following_count": 8,
+        "settings": {...},
+        "medals": [...],
+        "totalLoginDays": 10,
+        "consecutiveLoginDays": 5,
+        "last_login_at": "最后登录时间",
+        "last_login_ip": "最后登录IP",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间"
+      },
+      "token": "JWT令牌",
+      "isNewUser": true,
+      "loginStats": {...},
+      "awardedMedals": [...]
+    }
+  }
+  ```
+
+#### 1.12 QQ一键登录
+
+- **路径**：`POST /api/users/qq-login`
+- **描述**：使用QQ code进行登录或注册
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | ---- | ------ | -- | ---------- |
+  | code | string | 是 | QQ登录code |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "message": "QQ登录成功，新用户注册",
+    "data": {
+      "user": {
+        "id": "用户ID",
+        "uuid": "用户UUID",
+        "username": "用户名",
+        "nickname": "昵称",
+        "email": "邮箱",
+        "phone": "手机号",
+        "avatar": "头像URL",
+        "role": 0, // 0=普通用户，1=VIP，2=SVIP，3=管理员，4=超级管理员
+        "status": 1, // 0=禁用，1=正常，2=冻结
+        "vip_expire": "VIP到期时间",
+        "vipExpireDate": "VIP到期时间",
+        "svipExpireDate": "SVIP到期时间",
+        "balance": 100,
+        "diary_count": 5,
+        "word_count": 1000,
+        "like_count": 20,
+        "follower_count": 10,
+        "following_count": 8,
+        "settings": {...},
+        "medals": [...],
+        "totalLoginDays": 10,
+        "consecutiveLoginDays": 5,
+        "last_login_at": "最后登录时间",
+        "last_login_ip": "最后登录IP",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间"
+      },
+      "token": "JWT令牌",
+      "isNewUser": true,
+      "loginStats": {...},
+      "awardedMedals": [...]
+    }
   }
   ```
 
@@ -304,7 +504,7 @@
 - **描述**：根据类型获取字典数据
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---- | ------ | -- | ---- |
   | type | string | 是 | 字典类型 |
 - **返回结果**：
   ```json
@@ -333,7 +533,7 @@
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ----------- | ------ | -- | ----- |
   | type | string | 是 | 字典类型 |
   | items | array | 否 | 字典项数组 |
   | description | string | 否 | 字典描述 |
@@ -357,7 +557,7 @@
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ----------- | ------ | -- | ----- |
   | items | array | 否 | 字典项数组 |
   | description | string | 否 | 字典描述 |
 - **返回结果**：
@@ -380,7 +580,7 @@
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---- | ------ | -- | ---- |
   | type | string | 是 | 字典类型 |
 - **返回结果**：
   ```json
@@ -399,7 +599,7 @@
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ----------- | ------ | -- | ----------------------------------- |
   | file | file | 是 | 文件 |
   | description | string | 否 | 文件描述 |
   | type | string | 否 | 文件类型（如：carousel, icon, user_image） |
@@ -498,7 +698,7 @@
 - **描述**：根据勋章ID获取勋章详情
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ---- |
   | id | string | 是 | 勋章ID |
 - **返回结果**：
   ```json
@@ -521,7 +721,7 @@
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------- | ------ | -- | ---- |
   | userId | string | 是 | 用户ID |
   | medalId | string | 是 | 勋章ID |
   | reason | string | 是 | 颁发原因 |
@@ -548,7 +748,7 @@
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -------- | ------ | -- | ---- |
   | duration | number | 是 | 充值天数 |
 - **返回结果**：
   ```json
@@ -568,7 +768,7 @@
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -------- | ------ | -- | ---- |
   | duration | number | 是 | 充值天数 |
 - **返回结果**：
   ```json
@@ -588,7 +788,7 @@
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------ | ------ | -- | ---- |
   | amount | number | 是 | 充值金额 |
 - **返回结果**：
   ```json
@@ -632,7 +832,7 @@
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------ | ------ | -- | ---- |
   | userId | string | 否 | 用户ID |
 - **返回结果**：
   ```json
@@ -666,7 +866,7 @@
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---------- | ------ | -- | ------------------------ |
   | type | string | 是 | 兑换码类型：vip, svip, balance |
   | value | number | 是 | 兑换码价值（天数或金额） |
   | count | number | 是 | 生成数量 |
@@ -693,7 +893,7 @@
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---- | ------ | -- | --- |
   | code | string | 是 | 兑换码 |
 - **返回结果**：
   ```json
@@ -714,7 +914,7 @@
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------ | ------- | -- | ----- |
   | type | string | 否 | 兑换码类型 |
   | isUsed | boolean | 否 | 是否已使用 |
 - **返回结果**：
@@ -767,7 +967,7 @@
 - **认证**：需要JWT Token，且角色为superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ----- |
   | id | string | 是 | 管理员ID |
 - **返回结果**：
   ```json
@@ -790,7 +990,7 @@
 - **认证**：需要JWT Token，且角色为superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -------- | ------ | -- | --- |
   | username | string | 是 | 用户名 |
   | email | string | 是 | 邮箱 |
   | password | string | 是 | 密码 |
@@ -818,7 +1018,7 @@
 - **认证**：需要JWT Token，且角色为superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ----- |
   | username | string | 否 | 用户名 |
   | nickname | string | 否 | 昵称 |
   | password | string | 否 | 密码 |
@@ -851,7 +1051,7 @@
 - **认证**：需要JWT Token，且角色为superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ----- |
   | id | string | 是 | 管理员ID |
 - **返回结果**：
   ```json
@@ -873,7 +1073,7 @@
 - **认证**：需要JWT Token，且角色为superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ----- |
   | id | string | 是 | 管理员ID |
 - **返回结果**：
   ```json
@@ -895,7 +1095,7 @@
 - **认证**：需要JWT Token，且角色为superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ----- |
   | id | string | 是 | 管理员ID |
 - **返回结果**：
   ```json
@@ -992,7 +1192,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------ | ------ | -- | ---------------------------- |
   | format | string | 否 | 导出格式：csv, xlsx, json（默认json） |
   | limit | number | 否 | 导出数量限制，0表示全部 |
 - **返回结果**：文件下载
@@ -1004,7 +1204,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------ | ------ | -- | ---------------------------- |
   | format | string | 否 | 导出格式：csv, xlsx, json（默认json） |
 - **返回结果**：文件下载
 
@@ -1015,7 +1215,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------ | ------ | -- | ---------------------------- |
   | format | string | 否 | 导出格式：csv, xlsx, json（默认json） |
 - **返回结果**：文件下载
 
@@ -1026,7 +1226,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------ | ------ | -- | ---------------------------- |
   | format | string | 否 | 导出格式：csv, xlsx, json（默认json） |
   | limit | number | 否 | 导出数量限制，0表示全部 |
 - **返回结果**：文件下载
@@ -1038,7 +1238,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ------ | ------ | -- | ---------------------------- |
   | format | string | 否 | 导出格式：csv, xlsx, json（默认json） |
   | limit | number | 否 | 导出数量限制，0表示全部 |
 - **返回结果**：文件下载
@@ -1050,7 +1250,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---- | ---- | -- | ---- |
   | file | file | 是 | 导入文件 |
 - **返回结果**：
   ```json
@@ -1067,7 +1267,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---- | ---- | -- | ---- |
   | file | file | 是 | 导入文件 |
 - **返回结果**：
   ```json
@@ -1084,7 +1284,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---- | ---- | -- | ---- |
   | file | file | 是 | 导入文件 |
 - **返回结果**：
   ```json
@@ -1103,7 +1303,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---------------- | ------- | -- | --------------------------------- |
   | title | string | 是 | 日记标题 |
   | content | string | 是 | 日记内容 |
   | diary_date | string | 是 | 日记日期（格式：YYYY-MM-DD） |
@@ -1154,11 +1354,12 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---------- |
   | page | number | 否 | 页码（默认1） |
   | per_page | number | 否 | 每页数量（默认10） |
   | tag | string | 否 | 标签筛选 |
   | mood | string | 否 | 心情筛选 |
+  | keyword | string | 否 | 模糊查询关键词（标题或内容） |
 - **返回结果**：
   ```json
   {
@@ -1200,7 +1401,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ---- |
   | id | string | 是 | 日记ID |
 - **返回结果**：
   ```json
@@ -1237,7 +1438,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---------------- | ------- | -- | --------------------------------- |
   | id | string | 是 | 日记ID |
   | title | string | 否 | 日记标题 |
   | content | string | 否 | 日记内容 |
@@ -1289,7 +1490,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ---- |
   | id | string | 是 | 日记ID |
 - **返回结果**：
   ```json
@@ -1306,7 +1507,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ---------- | ------- | -- | ---------- |
   | page | number | 否 | 页码（默认1） |
   | per_page | number | 否 | 每页数量（默认10） |
   | user_id | string | 否 | 用户ID筛选 |
@@ -1355,7 +1556,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ---- |
   | id | string | 是 | 日记ID |
 - **返回结果**：
   ```json
@@ -1395,7 +1596,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token，且角色为admin或superadmin
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -- | ------ | -- | ---- |
   | id | string | 是 | 日记ID |
 - **返回结果**：
   ```json
@@ -1432,7 +1633,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---------- |
   | page | number | 否 | 页码（默认1） |
   | per_page | number | 否 | 每页数量（默认10） |
 - **返回结果**：
@@ -1477,7 +1678,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---------------------------- |
   | page | number | 否 | 页码（默认1） |
   | per_page | number | 否 | 每页数量（默认10） |
   | sort_by | string | 否 | 排序方式：likes（点赞）或 comments（评论） |
@@ -1523,7 +1724,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---------- |
   | page | number | 否 | 页码（默认1） |
   | per_page | number | 否 | 每页数量（默认10） |
 - **返回结果**：
@@ -1568,7 +1769,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---------- |
   | page | number | 否 | 页码（默认1） |
   | per_page | number | 否 | 每页数量（默认10） |
 - **返回结果**：
@@ -1613,7 +1814,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---------- |
   | page | number | 否 | 页码（默认1） |
   | per_page | number | 否 | 每页数量（默认10） |
 - **返回结果**：
@@ -1658,7 +1859,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---- |
   | diary_id | string | 是 | 日记ID |
 - **返回结果**：
   ```json
@@ -1679,7 +1880,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---- |
   | diary_id | string | 是 | 日记ID |
 - **返回结果**：
   ```json
@@ -1700,7 +1901,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ---- |
   | diary_id | string | 是 | 日记ID |
   | content | string | 是 | 评论内容 |
 - **返回结果**：
@@ -1729,7 +1930,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -------- | ------ | -- | ---- |
   | user_id | string | 是 | 用户ID |
 - **返回结果**：
   ```json
@@ -1749,7 +1950,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | -------- | ------ | -- | ---- |
   | user_id | string | 是 | 用户ID |
 - **返回结果**：
   ```json
@@ -1769,7 +1970,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | --------- | ------ | -- | ------------ |
   | diary_id | string | 是 | 日记ID |
   | page | number | 否 | 评论页码（默认1） |
   | per_page | number | 否 | 每页评论数量（默认20） |
@@ -1846,12 +2047,248 @@ async function uploadFile(file, description, type) {
 
 #### 11.12 点赞评论
 
+### 12. 心情相关接口
+
+#### 12.1 获取心情列表
+
+- **路径**：`GET /api/moods`
+- **描述**：获取心情列表，支持分类、类型筛选和关键词搜索
+- **认证**：需要JWT Token
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | --------- | ------ | -- | ---------- |
+  | category_id | number | 否 | 分类ID |
+  | type | string | 否 | 心情类型：system（系统预设）、custom（自定义）、all（全部） |
+  | keyword | string | 否 | 搜索关键词 |
+  | page | number | 否 | 页码（默认1） |
+  | page_size | number | 否 | 每页数量（默认20） |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "data": {
+      "total": 10,
+      "items": [
+        {
+          "id": "心情UUID",
+          "name": "开心",
+          "description": "心情愉悦，充满快乐",
+          "icon_type": 1,
+          "icon_value": "😊",
+          "is_system": true,
+          "use_count": 1234,
+          "user_use_count": 56
+        }
+      ]
+    }
+  }
+  ```
+
+#### 12.2 获取心情详情
+
+- **路径**：`GET /api/moods/{uuid}`
+- **描述**：根据UUID获取心情详情
+- **认证**：需要JWT Token
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | -- | ------ | -- | ---- |
+  | uuid | string | 是 | 心情UUID |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "data": {
+      "id": "心情UUID",
+      "name": "开心",
+      "description": "心情愉悦，充满快乐",
+      "icon_type": 1,
+      "icon_value": "😊",
+      "is_system": true,
+      "use_count": 1234
+    }
+  }
+  ```
+
+#### 12.3 获取推荐心情
+
+- **路径**：`GET /api/moods/recommend`
+- **描述**：获取基于时间和使用频率的推荐心情
+- **认证**：需要JWT Token
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "心情UUID",
+        "name": "开心",
+        "icon_type": 1,
+        "icon_value": "😊",
+        "is_system": true
+      }
+    ]
+  }
+  ```
+
+#### 12.4 创建自定义心情
+
+- **路径**：`POST /api/user/moods`
+- **描述**：创建用户自定义心情
+- **认证**：需要JWT Token
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | --------- | ------ | -- | ---------- |
+  | name | string | 是 | 心情名称 |
+  | description | string | 否 | 心情描述 |
+  | icon_type | number | 是 | 图标类型：1=Emoji，2=内置表情包，3=自定义图片 |
+  | icon_value | string | 是 | 图标值：Emoji字符、表情包ID或图片URL |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "message": "自定义心情创建成功",
+    "data": {
+      "id": "心情UUID",
+      "name": "困成狗",
+      "description": "非常疲惫",
+      "icon_type": 1,
+      "icon_value": "🥱"
+    }
+  }
+  ```
+
+#### 12.5 修改自定义心情
+
+- **路径**：`PUT /api/user/moods/{uuid}`
+- **描述**：修改用户自定义心情
+- **认证**：需要JWT Token
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | --------- | ------ | -- | ---------- |
+  | uuid | string | 是 | 心情UUID |
+  | name | string | 否 | 心情名称 |
+  | description | string | 否 | 心情描述 |
+  | icon_type | number | 否 | 图标类型：1=Emoji，2=内置表情包，3=自定义图片 |
+  | icon_value | string | 否 | 图标值：Emoji字符、表情包ID或图片URL |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "message": "心情修改成功",
+    "data": {
+      "id": "心情UUID",
+      "name": "超级困",
+      "description": "非常疲惫",
+      "icon_type": 1,
+      "icon_value": "🥱"
+    }
+  }
+  ```
+
+#### 12.6 删除自定义心情
+
+- **路径**：`DELETE /api/user/moods/{uuid}`
+- **描述**：软删除用户自定义心情
+- **认证**：需要JWT Token
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | -- | ------ | -- | ---- |
+  | uuid | string | 是 | 心情UUID |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "message": "心情删除成功"
+  }
+  ```
+
+#### 12.7 获取用户自定义心情列表
+
+- **路径**：`GET /api/user/moods/custom`
+- **描述**：获取当前用户的自定义心情列表
+- **认证**：需要JWT Token
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "心情UUID",
+        "name": "困成狗",
+        "description": "非常疲惫",
+        "icon_type": 1,
+        "icon_value": "🥱",
+        "created_at": "2023-01-01T00:00:00.000Z"
+      }
+    ]
+  }
+  ```
+
+#### 12.8 获取用户常用心情
+
+- **路径**：`GET /api/user/moods/frequent`
+- **描述**：获取当前用户使用频率最高的心情
+- **认证**：需要JWT Token
+- **参数**：
+  | 字段 | 类型 | 必填 | 说明 |
+  | ---- | ------ | -- | ---------- |
+  | limit | number | 否 | 返回数量限制（默认5） |
+- **返回结果**：
+  ```json
+  {
+    "success": true,
+    "data": [
+      {
+        "id": "心情UUID",
+        "name": "开心",
+        "icon_type": 1,
+        "icon_value": "😊",
+        "is_system": true,
+        "use_count": 20
+      }
+    ]
+  }
+  ```
+
+#### 12.9 获取心情使用统计
+
+- **路径**：`GET /api/moods/stats`
+- **描述**：获取心情使用统计信息
+- **认证**：需要JWT Token
+- **返回结果**：
+
+  ```json
+  {
+    "success": true,
+    "data": {
+      "global_hot": [
+        {
+          "id": "心情UUID",
+          "name": "开心",
+          "icon_type": 1,
+          "icon_value": "😊",
+          "use_count": 1234
+        }
+      ],
+      "user_frequent": [
+        {
+          "id": "心情UUID",
+          "name": "开心",
+          "icon_type": 1,
+          "icon_value": "😊",
+          "use_count": 20
+        }
+      ]
+    }
+  }
+  ```
+
 - **路径**：`POST /api/square/comment/like`
 - **描述**：为指定评论点赞
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ----------- | ------ | -- | ---- |
   | comment_id | string | 是 | 评论ID |
 - **返回结果**：
   ```json
@@ -1872,7 +2309,7 @@ async function uploadFile(file, description, type) {
 - **认证**：需要JWT Token
 - **参数**：
   | 字段 | 类型 | 必填 | 说明 |
-  |------|------|------|------|
+  | ----------- | ------ | -- | ---- |
   | comment_id | string | 是 | 评论ID |
 - **返回结果**：
   ```json

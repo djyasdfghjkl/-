@@ -1,5 +1,6 @@
 const Router = require('koa-router');
 const auth = require('../middleware/auth');
+const optionalAuth = require('../middleware/optionalAuth');
 const Diary = require('../models/Diary');
 const User = require('../models/User');
 const Follow = require('../models/Follow');
@@ -34,7 +35,7 @@ const router = new Router();
  *       401:
  *         description: 未认证
  */
-router.get('/square/recommend', auth, async (ctx) => {
+router.get('/square/recommend', optionalAuth, async (ctx) => {
   try {
     const user = ctx.state.user;
     const { page = 1, per_page = 10 } = ctx.query;
@@ -46,12 +47,17 @@ router.get('/square/recommend', auth, async (ctx) => {
       .skip((page - 1) * per_page)
       .limit(parseInt(per_page));
 
-    // 处理返回数据，添加是否点赞和是否关注
+    // 处理返回数据，添加是否点赞和是否关注（如果用户已登录）
     const diaryList = await Promise.all(diaries.map(async (diary) => {
-      // 检查是否点赞
-      const isLiked = await Like.exists({ user_id: user._id, diary_id: diary._id });
-      // 检查是否关注作者
-      const isFollowed = await Follow.exists({ follower_id: user._id, following_id: diary.user_id._id });
+      let isLiked = false;
+      let isFollowed = false;
+
+      if (user) {
+        // 检查是否点赞
+        isLiked = await Like.exists({ user_id: user._id, diary_id: diary._id });
+        // 检查是否关注作者
+        isFollowed = await Follow.exists({ follower_id: user._id, following_id: diary.user_id._id });
+      }
 
       return {
         id: diary._id,
@@ -123,7 +129,7 @@ router.get('/square/recommend', auth, async (ctx) => {
  *       401:
  *         description: 未认证
  */
-router.get('/square/hot', auth, async (ctx) => {
+router.get('/square/hot', optionalAuth, async (ctx) => {
   try {
     const user = ctx.state.user;
     const { page = 1, per_page = 10, sort_by = 'likes' } = ctx.query;
@@ -140,8 +146,13 @@ router.get('/square/hot', auth, async (ctx) => {
 
     // 处理返回数据
     const diaryList = await Promise.all(diaries.map(async (diary) => {
-      const isLiked = await Like.exists({ user_id: user._id, diary_id: diary._id });
-      const isFollowed = await Follow.exists({ follower_id: user._id, following_id: diary.user_id._id });
+      let isLiked = false;
+      let isFollowed = false;
+
+      if (user) {
+        isLiked = await Like.exists({ user_id: user._id, diary_id: diary._id });
+        isFollowed = await Follow.exists({ follower_id: user._id, following_id: diary.user_id._id });
+      }
 
       return {
         id: diary._id,
@@ -207,7 +218,7 @@ router.get('/square/hot', auth, async (ctx) => {
  *       401:
  *         description: 未认证
  */
-router.get('/square/latest', auth, async (ctx) => {
+router.get('/square/latest', optionalAuth, async (ctx) => {
   try {
     const user = ctx.state.user;
     const { page = 1, per_page = 10 } = ctx.query;
@@ -221,8 +232,13 @@ router.get('/square/latest', auth, async (ctx) => {
 
     // 处理返回数据
     const diaryList = await Promise.all(diaries.map(async (diary) => {
-      const isLiked = await Like.exists({ user_id: user._id, diary_id: diary._id });
-      const isFollowed = await Follow.exists({ follower_id: user._id, following_id: diary.user_id._id });
+      let isLiked = false;
+      let isFollowed = false;
+
+      if (user) {
+        isLiked = await Like.exists({ user_id: user._id, diary_id: diary._id });
+        isFollowed = await Follow.exists({ follower_id: user._id, following_id: diary.user_id._id });
+      }
 
       return {
         id: diary._id,

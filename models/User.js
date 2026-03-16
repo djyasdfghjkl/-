@@ -84,6 +84,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     unique: true,
   },
+  alipay_openid: {
+    type: String,
+    unique: true,
+  },
   status: {
     type: Number,
     enum: [0, 1, 2], // 0=禁用，1=正常，2=冻结
@@ -132,6 +136,26 @@ const UserSchema = new mongoose.Schema({
   medals: {
     type: Array,
     default: [],
+  },
+  transfer_percent: {
+    type: Number,
+    default: 100, // 默认100%
+    min: 0,
+    max: 200,
+  },
+  special_medals: {
+    type: Array,
+    default: [],
+  },
+  points: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+  user_level: {
+    type: Number,
+    default: 1,
+    min: 1,
   },
   last_login_at: {
     type: Date,

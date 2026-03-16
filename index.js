@@ -17,6 +17,21 @@ if (!fs.existsSync(uploadDir)) {
 // 初始化Koa应用
 const app = new Koa();
 
+// CORS中间件
+const cors = require("@koa/cors");
+app.use(
+  cors({
+    origin: "*", // 调试阶段允许所有来源（可后续收紧）
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "ngrok-skip-browser-warning",
+    ],
+    credentials: true,
+  }),
+);
+
 // 中间件
 app.use(bodyParser());
 
@@ -32,44 +47,32 @@ app.use(logger);
 const rateLimit = require("./middleware/rateLimit");
 app.use(rateLimit);
 
-// CORS中间件
-app.use(async function (ctx, next) {
-  ctx.set("Access-Control-Allow-Origin", "*");
-  ctx.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  ctx.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (ctx.method === "OPTIONS") {
-    ctx.status = 204;
-    return;
-  }
-  await next();
-});
-
 // 错误处理中间件
 app.use(async function (ctx, next) {
   try {
     // 记录请求
-    console.log('[请求]', ctx.method, ctx.url, ctx.request.body);
-    
+    console.log("[请求]", ctx.method, ctx.url, ctx.request.body);
+
     // 执行后续中间件
     await next();
-    
+
     // 确保返回体有内容
     if (!ctx.body) {
       ctx.body = {
         success: true,
-        message: '操作成功'
+        message: "操作成功",
       };
     }
   } catch (error) {
-    console.error('[错误处理中间件] 捕获到错误:', error);
-    console.error('[错误处理中间件] 错误堆栈:', error.stack);
-    
+    console.error("[错误处理中间件] 捕获到错误:", error);
+    console.error("[错误处理中间件] 错误堆栈:", error.stack);
+
     // 确保返回体有内容
     ctx.body = {
       success: false,
-      message: error.message || '服务器内部错误'
+      message: error.message || "服务器内部错误",
     };
-    
+
     // 设置状态码
     ctx.status = error.status || 500;
   }
@@ -80,9 +83,12 @@ const mysql = require("./config/mysql");
 const mongodb = require("./config/mongodb");
 
 // 初始化MongoDB连接
+console.log("正在尝试连接MongoDB...");
 mongodb.connect();
+console.log(process.env.WECHAT_APP_ID, "process.env.WECHAT_APP_ID");
 
 // 测试MySQL连接
+console.log("正在尝试连接MySQL...");
 mysql
   .getConnection()
   .then((connection) => {
@@ -91,6 +97,7 @@ mysql
   })
   .catch((error) => {
     console.error("MySQL connection error:", error.message);
+    console.log("服务器将继续启动，即使MySQL连接失败");
   });
 
 // 检查是否需要清空数据库
@@ -110,12 +117,16 @@ if (process.env.CLEAR_DATABASE === "true") {
 // 初始化应用函数
 function initApp() {
   // 初始化超级管理员账号
-  const initSuperAdmin = require("./config/init");
-  initSuperAdmin();
+    const initSuperAdmin = require("./config/init");
+    initSuperAdmin();
 
-  // 初始化默认勋章
-  const { initDefaultMedals } = require("./utils/medalManager");
-  initDefaultMedals();
+    // 初始化默认勋章
+    const { initDefaultMedals } = require("./utils/medalManager");
+    initDefaultMedals();
+
+    // 初始化默认心情
+    const initDefaultMoods = require("./config/initMoods");
+    initDefaultMoods();
 }
 
 // Swagger配置
@@ -204,6 +215,10 @@ const squareRouter = require("./routes/square");
 const diaryRouterModule = require("./routes/diary");
 const diaryRouter = diaryRouterModule.router;
 const diaryAdminRouter = diaryRouterModule.adminRouter;
+const emojiRouterModule = require("./routes/emoji");
+const emojiRouter = emojiRouterModule.router;
+const emojiAdminRouter = emojiRouterModule.adminRouter;
+const moodRouter = require("./routes/mood");
 
 // 注册路由的函数
 function registerRoutes(app, routers) {
@@ -234,6 +249,9 @@ registerRoutes(app, [
   squareRouter,
   diaryRouter,
   diaryAdminRouter,
+  emojiRouter,
+  emojiAdminRouter,
+  moodRouter,
 ]);
 
 // 端口自动递增函数
@@ -257,12 +275,14 @@ function startServerWithAutoPort(app, startPort) {
     });
 }
 
-// 启动服务器
-const PORT = process.env.PORT || 3000;
-console.log('准备启动服务器...');
-console.log(`尝试在端口 ${PORT} 启动服务器...`);
+// 导出app对象供serverless-http使用
+module.exports = app;
 
-app.listen(PORT, function () {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`API docs at http://localhost:${PORT}/api-docs`);
-});
+// 在本地运行时启动服务器
+if (require.main === module) {
+  // 启动服务器（自动递增端口）
+  const startPort = parseInt(process.env.PORT) || 3000;
+  console.log("准备启动服务器...");
+  console.log(`尝试在端口 ${startPort} 启动服务器...`);
+  startServerWithAutoPort(app, startPort);
+}

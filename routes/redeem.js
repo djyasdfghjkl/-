@@ -66,9 +66,16 @@ adminRouter.post(
   role(["admin", "superadmin"]),
   async (ctx) => {
     try {
-      const { type, value, count, expireDays } = ctx.request.body;
+      const { type, value, count, expireDays, medalId } = ctx.request.body;
 
       if (!type || !value || !count || !expireDays) {
+        ctx.status = 400;
+        ctx.body = getError("common.badRequest");
+        return;
+      }
+
+      // 特殊勋章需要medalId
+      if (type === "special_medal" && !medalId) {
         ctx.status = 400;
         ctx.body = getError("common.badRequest");
         return;
@@ -80,7 +87,7 @@ adminRouter.post(
         return;
       }
 
-      const validTypes = ["vip", "svip", "balance"];
+      const validTypes = ["vip", "svip", "balance", "transfer_percent", "special_medal", "points", "level"];
       if (!validTypes.includes(type)) {
         ctx.status = 400;
         ctx.body = getError("common.badRequest");
@@ -100,12 +107,19 @@ adminRouter.post(
           continue;
         }
 
-        const redeemCode = new RedeemCode({
+        const redeemCodeData = {
           code,
           type,
           value,
           expiresAt: expireDate,
-        });
+        };
+
+        // 如果是特殊勋章类型，添加medalId
+        if (type === "special_medal" && medalId) {
+          redeemCodeData.medalId = medalId;
+        }
+
+        const redeemCode = new RedeemCode(redeemCodeData);
 
         await redeemCode.save();
         codes.push(code);
@@ -236,6 +250,36 @@ router.post("/api/redeem/use", auth, async (ctx) => {
         // 处理余额兑换
         user.balance += redeemCode.value;
         result = { type: "balance", balance: user.balance };
+        break;
+
+      case "transfer_percent":
+        // 处理转账百分比兑换
+        user.transfer_percent = Math.min(200, Math.max(0, redeemCode.value));
+        result = { type: "transfer_percent", transfer_percent: user.transfer_percent };
+        break;
+
+      case "special_medal":
+        // 处理特殊勋章兑换
+        if (redeemCode.medalId) {
+          if (!user.special_medals.includes(redeemCode.medalId.toString())) {
+            user.special_medals.push(redeemCode.medalId.toString());
+          }
+          result = { type: "special_medal", medalId: redeemCode.medalId, special_medals: user.special_medals };
+        } else {
+          result = { type: "special_medal", message: "兑换成功" };
+        }
+        break;
+
+      case "points":
+        // 处理积分兑换
+        user.points += redeemCode.value;
+        result = { type: "points", points: user.points };
+        break;
+
+      case "level":
+        // 处理等级兑换
+        user.user_level = Math.max(user.user_level, redeemCode.value);
+        result = { type: "level", user_level: user.user_level };
         break;
     }
 

@@ -9,8 +9,13 @@ const RedeemCodeSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['vip', 'svip', 'balance'],
+    enum: ['vip', 'svip', 'balance', 'transfer_percent', 'special_medal', 'points', 'level'],
     required: true
+  },
+  medalId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Medal',
+    default: null
   },
   value: {
     type: Number,

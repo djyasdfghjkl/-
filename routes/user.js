@@ -1231,6 +1231,1077 @@ superadminRouter.delete(
   },
 );
 
+/**
+ * @swagger
+ * /api/users/wechat-login:
+ *   post:
+ *     summary: 微信一键登录
+ *     description: 使用微信小程序code进行登录或注册
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: 微信小程序登录code
+ *               encryptedData:
+ *                 type: string
+ *                 description: 加密的用户数据（可选，用于获取用户信息）
+ *               iv:
+ *                 type: string
+ *                 description: 加密算法的初始向量（可选）
+ *     responses:
+ *       200:
+ *         description: 登录成功
+ *       400:
+ *         description: 请求参数错误
+ *       500:
+ *         description: 服务器错误
+ */
+router.post("/users/wechat-login", async (ctx) => {
+  try {
+    console.log("[微信登录请求]", ctx.request.body);
+    const { code, encryptedData, iv } = ctx.request.body;
+
+    if (!code) {
+      console.log("[微信登录失败]", "缺少code参数");
+      ctx.status = 400;
+      ctx.body = getError("common.badRequest");
+      return;
+    }
+
+    // 检查MongoDB连接状态
+    if (!isConnected()) {
+      console.log("[微信登录失败]", "数据库连接失败");
+      ctx.status = 503;
+      ctx.body = getError("database.connectionFailed");
+      return;
+    }
+
+    // 引入微信配置
+    const { code2Session, decryptData } = require("../config/wechat");
+
+    // 换取微信用户信息
+    const wechatData = await code2Session(code);
+    console.log("[微信返回数据]", wechatData);
+
+    if (wechatData.errcode) {
+      console.log("[微信登录失败]", wechatData.errmsg);
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        message: "微信登录失败：" + wechatData.errmsg,
+      };
+      return;
+    }
+
+    const { openid, unionid, session_key } = wechatData;
+
+    // 查找是否已存在该微信用户
+    let user = await User.findOne({ wx_openid: openid });
+
+    // 如果有unionid，也可以尝试通过unionid查找
+    if (!user && unionid) {
+      user = await User.findOne({ wx_unionid: unionid });
+    }
+
+    let isNewUser = false;
+
+    if (!user) {
+      // 新用户，创建账号
+      isNewUser = true;
+      let nickname = "微信用户";
+      let avatar =
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0HNMljHEj-lzogm1ayQ6BZ8yEVcOuNmPAnw&s";
+
+      // 如果有加密数据，解密获取用户信息
+      if (encryptedData && iv && session_key) {
+        try {
+          const decryptedData = decryptData(encryptedData, iv, session_key);
+          console.log("[解密用户数据]", decryptedData);
+          if (decryptedData.nickName) {
+            nickname = decryptedData.nickName;
+          }
+          if (decryptedData.avatarUrl) {
+            avatar = decryptedData.avatarUrl;
+          }
+          if (decryptedData.gender !== undefined) {
+            // 微信：0未知，1男，2女
+            // 我们的系统：0未知，1男，2女
+          }
+        } catch (error) {
+          console.warn("[解密用户数据失败，使用默认值]", error.message);
+        }
+      }
+
+      // 创建用户
+      user = new User({
+        wx_openid: openid,
+        wx_unionid: unionid,
+        username: openid,
+        nickname: nickname,
+        avatar: avatar,
+      });
+      await user.save();
+      console.log("[微信登录] 新用户创建成功", `openid: ${openid}`);
+    } else {
+      // 老用户，更新unionid（如果有）
+      if (unionid && !user.wx_unionid) {
+        user.wx_unionid = unionid;
+        await user.save();
+      }
+      console.log("[微信登录] 老用户登录", `openid: ${openid}`);
+    }
+
+    // 获取用户IP
+    const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
+    user.lastLoginIp = userIp;
+    user.last_login_ip = userIp;
+    user.lastLoginDate = new Date();
+    user.last_login_at = new Date();
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+
+    // 更新登录统计信息
+    const loginStats = await updateLoginStats(user._id);
+
+    // 检查并颁发勋章
+    let awardedMedals = [];
+    if (loginStats.success) {
+      const medalResult = await checkAndAwardMedals(user._id);
+      if (medalResult.success) {
+        awardedMedals = medalResult.awardedMedals;
+      }
+    }
+
+    // 生成JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || "your-secret-key",
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    console.log(
+      "[微信登录成功]",
+      `用户: ${user.username}, 昵称: ${user.nickname}, 新用户: ${isNewUser}`,
+    );
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      message: isNewUser ? "微信登录成功，新用户注册" : "微信登录成功",
+      data: {
+        user: {
+          id: user._id,
+          uuid: user.uuid,
+          username: user.username,
+          nickname: user.nickname,
+          email: user.email,
+          phone: user.phone,
+          avatar: user.avatar,
+          role: user.role,
+          status: user.status,
+          vip_expire: user.vip_expire,
+          vipExpireDate: user.vipExpireDate,
+          svipExpireDate: user.svipExpireDate,
+          balance: user.balance,
+          diary_count: user.diary_count,
+          word_count: user.word_count,
+          like_count: user.like_count,
+          follower_count: user.follower_count,
+          following_count: user.following_count,
+          settings: user.settings,
+          medals: user.medals,
+          totalLoginDays: user.totalLoginDays || 0,
+          consecutiveLoginDays: user.consecutiveLoginDays || 0,
+          last_login_at: user.last_login_at,
+          last_login_ip: user.last_login_ip,
+          signature: user.signature,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        token,
+        isNewUser,
+        loginStats: loginStats.success ? loginStats : null,
+        awardedMedals: awardedMedals.length > 0 ? awardedMedals : null,
+      },
+    };
+  } catch (error) {
+    console.error("[微信登录错误]:", error);
+    console.error("[错误堆栈]:", error.stack);
+    ctx.status = 500;
+    ctx.body = getError("common.serverError");
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/wechat-bind:
+ *   post:
+ *     summary: 绑定微信账号
+ *     description: 已登录用户绑定微信账号
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: 微信小程序登录code
+ *     responses:
+ *       200:
+ *         description: 绑定成功
+ *       400:
+ *         description: 请求参数错误或微信已被绑定
+ *       401:
+ *         description: 未认证
+ */
+router.post("/users/wechat-bind", auth, async (ctx) => {
+  try {
+    const currentUser = ctx.state.user;
+    console.log(
+      "[绑定微信请求]",
+      `用户ID: ${currentUser._id}`,
+      ctx.request.body,
+    );
+    const { code } = ctx.request.body;
+
+    if (!code) {
+      console.log("[绑定微信失败]", "缺少code参数");
+      ctx.status = 400;
+      ctx.body = getError("common.badRequest");
+      return;
+    }
+
+    // 引入微信配置
+    const { code2Session } = require("../config/wechat");
+
+    // 换取微信用户信息
+    const wechatData = await code2Session(code);
+    console.log("[微信返回数据]", wechatData);
+
+    if (wechatData.errcode) {
+      console.log("[绑定微信失败]", wechatData.errmsg);
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        message: "绑定微信失败：" + wechatData.errmsg,
+      };
+      return;
+    }
+
+    const { openid, unionid } = wechatData;
+
+    // 检查该微信是否已被其他用户绑定
+    const existingUser = await User.findOne({
+      $or: [
+        { wx_openid: openid },
+        unionid ? { wx_unionid: unionid } : null,
+      ].filter(Boolean),
+    });
+
+    if (
+      existingUser &&
+      existingUser._id.toString() !== currentUser._id.toString()
+    ) {
+      console.log("[绑定微信失败]", "该微信已被其他用户绑定");
+      ctx.status = 400;
+      ctx.body = { success: false, message: "该微信已被其他用户绑定" };
+      return;
+    }
+
+    // 绑定微信
+    currentUser.wx_openid = openid;
+    if (unionid) {
+      currentUser.wx_unionid = unionid;
+    }
+    await currentUser.save();
+
+    console.log(
+      "[绑定微信成功]",
+      `用户: ${currentUser.username}, openid: ${openid}`,
+    );
+
+    ctx.body = {
+      success: true,
+      message: "微信绑定成功",
+      data: {
+        wx_openid: openid,
+        wx_unionid: unionid,
+      },
+    };
+  } catch (error) {
+    console.error("[绑定微信错误]:", error);
+    ctx.status = 500;
+    ctx.body = { success: false, message: "绑定微信失败：" + error.message };
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/douyin-login:
+ *   post:
+ *     summary: 抖音一键登录
+ *     description: 使用抖音code进行登录或注册
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: 抖音登录code
+ *     responses:
+ *       200:
+ *         description: 登录成功
+ *       400:
+ *         description: 请求参数错误
+ *       500:
+ *         description: 服务器错误
+ */
+router.post("/users/douyin-login", async (ctx) => {
+  try {
+    console.log("[抖音登录请求]", ctx.request.body);
+    const { code } = ctx.request.body;
+
+    if (!code) {
+      console.log("[抖音登录失败]", "缺少code参数");
+      ctx.status = 400;
+      ctx.body = getError("common.badRequest");
+      return;
+    }
+
+    // 检查MongoDB连接状态
+    if (!isConnected()) {
+      console.log("[抖音登录失败]", "数据库连接失败");
+      ctx.status = 503;
+      ctx.body = getError("database.connectionFailed");
+      return;
+    }
+
+    // 这里需要实现抖音的code2Session逻辑
+    // 实际项目中需要调用抖音开放平台API
+    // 模拟返回数据
+    const douyinData = {
+      openid: "douyin_" + Date.now(),
+      nickname: "抖音用户",
+      avatar:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0HNMljHEj-lzogm1ayQ6BZ8yEVcOuNmPAnw&s",
+    };
+
+    // 查找是否已存在该抖音用户
+    let user = await User.findOne({ douyin_openid: douyinData.openid });
+
+    let isNewUser = false;
+
+    if (!user) {
+      // 新用户，创建账号
+      isNewUser = true;
+      user = new User({
+        douyin_openid: douyinData.openid,
+        username: douyinData.openid,
+        nickname: douyinData.nickname,
+        avatar: douyinData.avatar,
+      });
+      await user.save();
+      console.log("[抖音登录] 新用户创建成功", `openid: ${douyinData.openid}`);
+    } else {
+      console.log("[抖音登录] 老用户登录", `openid: ${douyinData.openid}`);
+    }
+
+    // 获取用户IP
+    const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
+    user.lastLoginIp = userIp;
+    user.last_login_ip = userIp;
+    user.lastLoginDate = new Date();
+    user.last_login_at = new Date();
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+
+    // 更新登录统计信息
+    const loginStats = await updateLoginStats(user._id);
+
+    // 检查并颁发勋章
+    let awardedMedals = [];
+    if (loginStats.success) {
+      const medalResult = await checkAndAwardMedals(user._id);
+      if (medalResult.success) {
+        awardedMedals = medalResult.awardedMedals;
+      }
+    }
+
+    // 生成JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || "your-secret-key",
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    console.log(
+      "[抖音登录成功]",
+      `用户: ${user.username}, 昵称: ${user.nickname}, 新用户: ${isNewUser}`,
+    );
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      message: isNewUser ? "抖音登录成功，新用户注册" : "抖音登录成功",
+      data: {
+        user: {
+          id: user._id,
+          uuid: user.uuid,
+          username: user.username,
+          nickname: user.nickname,
+          email: user.email,
+          phone: user.phone,
+          avatar: user.avatar,
+          role: user.role,
+          status: user.status,
+          vip_expire: user.vip_expire,
+          vipExpireDate: user.vipExpireDate,
+          svipExpireDate: user.svipExpireDate,
+          balance: user.balance,
+          diary_count: user.diary_count,
+          word_count: user.word_count,
+          like_count: user.like_count,
+          follower_count: user.follower_count,
+          following_count: user.following_count,
+          settings: user.settings,
+          medals: user.medals,
+          totalLoginDays: user.totalLoginDays || 0,
+          consecutiveLoginDays: user.consecutiveLoginDays || 0,
+          last_login_at: user.last_login_at,
+          last_login_ip: user.last_login_ip,
+          signature: user.signature,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        token,
+        isNewUser,
+        loginStats: loginStats.success ? loginStats : null,
+        awardedMedals: awardedMedals.length > 0 ? awardedMedals : null,
+      },
+    };
+  } catch (error) {
+    console.error("[抖音登录错误]:", error);
+    console.error("[错误堆栈]:", error.stack);
+    ctx.status = 500;
+    ctx.body = getError("common.serverError");
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/kuaishou-login:
+ *   post:
+ *     summary: 快手一键登录
+ *     description: 使用快手code进行登录或注册
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: 快手登录code
+ *     responses:
+ *       200:
+ *         description: 登录成功
+ *       400:
+ *         description: 请求参数错误
+ *       500:
+ *         description: 服务器错误
+ */
+router.post("/users/kuaishou-login", async (ctx) => {
+  try {
+    console.log("[快手登录请求]", ctx.request.body);
+    const { code } = ctx.request.body;
+
+    if (!code) {
+      console.log("[快手登录失败]", "缺少code参数");
+      ctx.status = 400;
+      ctx.body = getError("common.badRequest");
+      return;
+    }
+
+    // 检查MongoDB连接状态
+    if (!isConnected()) {
+      console.log("[快手登录失败]", "数据库连接失败");
+      ctx.status = 503;
+      ctx.body = getError("database.connectionFailed");
+      return;
+    }
+
+    // 这里需要实现快手的code2Session逻辑
+    // 实际项目中需要调用快手开放平台API
+    // 模拟返回数据
+    const kuaishouData = {
+      openid: "kuaishou_" + Date.now(),
+      nickname: "快手用户",
+      avatar:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0HNMljHEj-lzogm1ayQ6BZ8yEVcOuNmPAnw&s",
+    };
+
+    // 查找是否已存在该快手用户
+    let user = await User.findOne({ kuaishou_openid: kuaishouData.openid });
+
+    let isNewUser = false;
+
+    if (!user) {
+      // 新用户，创建账号
+      isNewUser = true;
+      user = new User({
+        kuaishou_openid: kuaishouData.openid,
+        username: kuaishouData.openid,
+        nickname: kuaishouData.nickname,
+        avatar: kuaishouData.avatar,
+      });
+      await user.save();
+      console.log(
+        "[快手登录] 新用户创建成功",
+        `openid: ${kuaishouData.openid}`,
+      );
+    } else {
+      console.log("[快手登录] 老用户登录", `openid: ${kuaishouData.openid}`);
+    }
+
+    // 获取用户IP
+    const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
+    user.lastLoginIp = userIp;
+    user.last_login_ip = userIp;
+    user.lastLoginDate = new Date();
+    user.last_login_at = new Date();
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+
+    // 更新登录统计信息
+    const loginStats = await updateLoginStats(user._id);
+
+    // 检查并颁发勋章
+    let awardedMedals = [];
+    if (loginStats.success) {
+      const medalResult = await checkAndAwardMedals(user._id);
+      if (medalResult.success) {
+        awardedMedals = medalResult.awardedMedals;
+      }
+    }
+
+    // 生成JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || "your-secret-key",
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    console.log(
+      "[快手登录成功]",
+      `用户: ${user.username}, 昵称: ${user.nickname}, 新用户: ${isNewUser}`,
+    );
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      message: isNewUser ? "快手登录成功，新用户注册" : "快手登录成功",
+      data: {
+        user: {
+          id: user._id,
+          uuid: user.uuid,
+          username: user.username,
+          nickname: user.nickname,
+          email: user.email,
+          phone: user.phone,
+          avatar: user.avatar,
+          role: user.role,
+          status: user.status,
+          vip_expire: user.vip_expire,
+          vipExpireDate: user.vipExpireDate,
+          svipExpireDate: user.svipExpireDate,
+          balance: user.balance,
+          diary_count: user.diary_count,
+          word_count: user.word_count,
+          like_count: user.like_count,
+          follower_count: user.follower_count,
+          following_count: user.following_count,
+          settings: user.settings,
+          medals: user.medals,
+          totalLoginDays: user.totalLoginDays || 0,
+          consecutiveLoginDays: user.consecutiveLoginDays || 0,
+          last_login_at: user.last_login_at,
+          last_login_ip: user.last_login_ip,
+          signature: user.signature,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        token,
+        isNewUser,
+        loginStats: loginStats.success ? loginStats : null,
+        awardedMedals: awardedMedals.length > 0 ? awardedMedals : null,
+      },
+    };
+  } catch (error) {
+    console.error("[快手登录错误]:", error);
+    console.error("[错误堆栈]:", error.stack);
+    ctx.status = 500;
+    ctx.body = getError("common.serverError");
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/alipay-login:
+ *   post:
+ *     summary: 支付宝一键登录
+ *     description: 使用支付宝code进行登录或注册
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: 支付宝登录code
+ *     responses:
+ *       200:
+ *         description: 登录成功
+ *       400:
+ *         description: 请求参数错误
+ *       500:
+ *         description: 服务器错误
+ */
+router.post("/users/alipay-login", async (ctx) => {
+  try {
+    console.log("[支付宝登录请求]", ctx.request.body);
+    const { code } = ctx.request.body;
+
+    if (!code) {
+      console.log("[支付宝登录失败]", "缺少code参数");
+      ctx.status = 400;
+      ctx.body = getError("common.badRequest");
+      return;
+    }
+
+    // 检查MongoDB连接状态
+    if (!isConnected()) {
+      console.log("[支付宝登录失败]", "数据库连接失败");
+      ctx.status = 503;
+      ctx.body = getError("database.connectionFailed");
+      return;
+    }
+
+    // 这里需要实现支付宝的code2Session逻辑
+    // 实际项目中需要调用支付宝开放平台API
+    // 模拟返回数据
+    const alipayData = {
+      openid: "alipay_" + Date.now(),
+      nickname: "支付宝用户",
+      avatar:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0HNMljHEj-lzogm1ayQ6BZ8yEVcOuNmPAnw&s",
+    };
+
+    // 查找是否已存在该支付宝用户
+    let user = await User.findOne({ alipay_openid: alipayData.openid });
+
+    let isNewUser = false;
+
+    if (!user) {
+      // 新用户，创建账号
+      isNewUser = true;
+      user = new User({
+        alipay_openid: alipayData.openid,
+        username: alipayData.openid,
+        nickname: alipayData.nickname,
+        avatar: alipayData.avatar,
+      });
+      await user.save();
+      console.log(
+        "[支付宝登录] 新用户创建成功",
+        `openid: ${alipayData.openid}`,
+      );
+    } else {
+      console.log("[支付宝登录] 老用户登录", `openid: ${alipayData.openid}`);
+    }
+
+    // 获取用户IP
+    const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
+    user.lastLoginIp = userIp;
+    user.last_login_ip = userIp;
+    user.lastLoginDate = new Date();
+    user.last_login_at = new Date();
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+
+    // 更新登录统计信息
+    const loginStats = await updateLoginStats(user._id);
+
+    // 检查并颁发勋章
+    let awardedMedals = [];
+    if (loginStats.success) {
+      const medalResult = await checkAndAwardMedals(user._id);
+      if (medalResult.success) {
+        awardedMedals = medalResult.awardedMedals;
+      }
+    }
+
+    // 生成JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || "your-secret-key",
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    console.log(
+      "[支付宝登录成功]",
+      `用户: ${user.username}, 昵称: ${user.nickname}, 新用户: ${isNewUser}`,
+    );
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      message: isNewUser ? "支付宝登录成功，新用户注册" : "支付宝登录成功",
+      data: {
+        user: {
+          id: user._id,
+          uuid: user.uuid,
+          username: user.username,
+          nickname: user.nickname,
+          email: user.email,
+          phone: user.phone,
+          avatar: user.avatar,
+          role: user.role,
+          status: user.status,
+          vip_expire: user.vip_expire,
+          vipExpireDate: user.vipExpireDate,
+          svipExpireDate: user.svipExpireDate,
+          balance: user.balance,
+          diary_count: user.diary_count,
+          word_count: user.word_count,
+          like_count: user.like_count,
+          follower_count: user.follower_count,
+          following_count: user.following_count,
+          settings: user.settings,
+          medals: user.medals,
+          totalLoginDays: user.totalLoginDays || 0,
+          consecutiveLoginDays: user.consecutiveLoginDays || 0,
+          last_login_at: user.last_login_at,
+          last_login_ip: user.last_login_ip,
+          signature: user.signature,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        token,
+        isNewUser,
+        loginStats: loginStats.success ? loginStats : null,
+        awardedMedals: awardedMedals.length > 0 ? awardedMedals : null,
+      },
+    };
+  } catch (error) {
+    console.error("[支付宝登录错误]:", error);
+    console.error("[错误堆栈]:", error.stack);
+    ctx.status = 500;
+    ctx.body = getError("common.serverError");
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/qq-login:
+ *   post:
+ *     summary: QQ一键登录
+ *     description: 使用QQ code进行登录或注册
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - code
+ *             properties:
+ *               code:
+ *                 type: string
+ *                 description: QQ登录code
+ *     responses:
+ *       200:
+ *         description: 登录成功
+ *       400:
+ *         description: 请求参数错误
+ *       500:
+ *         description: 服务器错误
+ */
+router.post("/users/qq-login", async (ctx) => {
+  try {
+    console.log("[QQ登录请求]", ctx.request.body);
+    const { code } = ctx.request.body;
+
+    if (!code) {
+      console.log("[QQ登录失败]", "缺少code参数");
+      ctx.status = 400;
+      ctx.body = getError("common.badRequest");
+      return;
+    }
+
+    // 检查MongoDB连接状态
+    if (!isConnected()) {
+      console.log("[QQ登录失败]", "数据库连接失败");
+      ctx.status = 503;
+      ctx.body = getError("database.connectionFailed");
+      return;
+    }
+
+    // 这里需要实现QQ的code2Session逻辑
+    // 实际项目中需要调用QQ开放平台API
+    // 模拟返回数据
+    const qqData = {
+      openid: "qq_" + Date.now(),
+      nickname: "QQ用户",
+      avatar:
+        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0HNMljHEj-lzogm1ayQ6BZ8yEVcOuNmPAnw&s",
+    };
+
+    // 查找是否已存在该QQ用户
+    let user = await User.findOne({ qq_openid: qqData.openid });
+
+    let isNewUser = false;
+
+    if (!user) {
+      // 新用户，创建账号
+      isNewUser = true;
+      user = new User({
+        qq_openid: qqData.openid,
+        username: qqData.openid,
+        nickname: qqData.nickname,
+        avatar: qqData.avatar,
+      });
+      await user.save();
+      console.log("[QQ登录] 新用户创建成功", `openid: ${qqData.openid}`);
+    } else {
+      console.log("[QQ登录] 老用户登录", `openid: ${qqData.openid}`);
+    }
+
+    // 获取用户IP
+    const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
+    user.lastLoginIp = userIp;
+    user.last_login_ip = userIp;
+    user.lastLoginDate = new Date();
+    user.last_login_at = new Date();
+    user.loginCount = (user.loginCount || 0) + 1;
+    await user.save();
+
+    // 更新登录统计信息
+    const loginStats = await updateLoginStats(user._id);
+
+    // 检查并颁发勋章
+    let awardedMedals = [];
+    if (loginStats.success) {
+      const medalResult = await checkAndAwardMedals(user._id);
+      if (medalResult.success) {
+        awardedMedals = medalResult.awardedMedals;
+      }
+    }
+
+    // 生成JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET || "your-secret-key",
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    console.log(
+      "[QQ登录成功]",
+      `用户: ${user.username}, 昵称: ${user.nickname}, 新用户: ${isNewUser}`,
+    );
+
+    ctx.status = 200;
+    ctx.body = {
+      success: true,
+      message: isNewUser ? "QQ登录成功，新用户注册" : "QQ登录成功",
+      data: {
+        user: {
+          id: user._id,
+          uuid: user.uuid,
+          username: user.username,
+          nickname: user.nickname,
+          email: user.email,
+          phone: user.phone,
+          avatar: user.avatar,
+          role: user.role,
+          status: user.status,
+          vip_expire: user.vip_expire,
+          vipExpireDate: user.vipExpireDate,
+          svipExpireDate: user.svipExpireDate,
+          balance: user.balance,
+          diary_count: user.diary_count,
+          word_count: user.word_count,
+          like_count: user.like_count,
+          follower_count: user.follower_count,
+          following_count: user.following_count,
+          settings: user.settings,
+          medals: user.medals,
+          totalLoginDays: user.totalLoginDays || 0,
+          consecutiveLoginDays: user.consecutiveLoginDays || 0,
+          last_login_at: user.last_login_at,
+          last_login_ip: user.last_login_ip,
+          signature: user.signature,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        token,
+        isNewUser,
+        loginStats: loginStats.success ? loginStats : null,
+        awardedMedals: awardedMedals.length > 0 ? awardedMedals : null,
+      },
+    };
+  } catch (error) {
+    console.error("[QQ登录错误]:", error);
+    console.error("[错误堆栈]:", error.stack);
+    ctx.status = 500;
+    ctx.body = getError("common.serverError");
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/stats:
+ *   get:
+ *     summary: 获取用户统计信息
+ *     description: 根据传参获取用户的不同统计信息
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [all, points, level, transfer_percent, medals, diary, basic]
+ *         description: 统计类型，all表示获取所有
+ *     responses:
+ *       200:
+ *         description: 获取成功
+ *       401:
+ *         description: 未认证
+ */
+router.get("/users/stats", auth, async (ctx) => {
+  try {
+    const user = ctx.state.user;
+    const { type = "all" } = ctx.query;
+
+    console.log("[获取用户统计请求]", `用户ID: ${user._id}, 类型: ${type}`);
+
+    const result = {};
+
+    // 根据类型返回不同的统计信息
+    const validTypes = [
+      "points",
+      "level",
+      "transfer_percent",
+      "medals",
+      "diary",
+      "basic",
+    ];
+    const requestTypes = type === "all" ? validTypes : [type];
+
+    // 基本信息
+    if (requestTypes.includes("basic")) {
+      result.basic = {
+        id: user._id,
+        username: user.username,
+        nickname: user.nickname,
+        avatar: user.avatar,
+        role: user.role,
+        status: user.status,
+        createdAt: user.createdAt,
+      };
+    }
+
+    // 积分统计
+    if (requestTypes.includes("points")) {
+      result.points = {
+        current: user.points || 0,
+      };
+    }
+
+    // 等级统计
+    if (requestTypes.includes("level")) {
+      result.level = {
+        current: user.user_level || 1,
+      };
+    }
+
+    // 转账百分比统计
+    if (requestTypes.includes("transfer_percent")) {
+      result.transfer_percent = {
+        current: user.transfer_percent || 100,
+      };
+    }
+
+    // 勋章统计
+    if (requestTypes.includes("medals")) {
+      result.medals = {
+        regular: user.medals || [],
+        special: user.special_medals || [],
+        total_count:
+          (user.medals?.length || 0) + (user.special_medals?.length || 0),
+      };
+    }
+
+    // 日记统计
+    if (requestTypes.includes("diary")) {
+      result.diary = {
+        count: user.diary_count || 0,
+        word_count: user.word_count || 0,
+        like_count: user.like_count || 0,
+      };
+    }
+
+    console.log("[获取用户统计成功]", `用户: ${user.username}`);
+
+    ctx.body = {
+      success: true,
+      data: type === "all" ? result : result[type],
+    };
+  } catch (error) {
+    console.error("[获取用户统计错误]:", error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: "获取统计信息失败：" + error.message,
+    };
+  }
+});
+
 // 注册路由前缀
 router.prefix("/api");
 adminRouter.prefix("/api/admin");
