@@ -6,9 +6,9 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    default: function() {
+    default: function () {
       return mongoose.Types.ObjectId().toString();
-    }
+    },
   },
   username: {
     type: String,
@@ -17,14 +17,15 @@ const UserSchema = new mongoose.Schema({
   },
   nickname: {
     type: String,
-    default: function() {
-      return this.username || this.email.split('@')[0];
+    default: function () {
+      return this.username || (this.email ? this.email.split("@")[0] : "用户");
     },
     trim: true,
   },
   avatar: {
     type: String,
-    default: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0HNMljHEj-lzogm1ayQ6BZ8yEVcOuNmPAnw&s",
+    default:
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0HNMljHEj-lzogm1ayQ6BZ8yEVcOuNmPAnw&s",
   },
   gender: {
     type: Number,
@@ -42,11 +43,12 @@ const UserSchema = new mongoose.Schema({
   city: {
     type: String,
     maxlength: 100,
-    default: ""
+    default: "",
   },
   phone: {
     type: String,
     unique: true,
+    sparse: true,
     trim: true,
   },
   phone_verified: {
@@ -56,6 +58,7 @@ const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     unique: true,
+    sparse: true,
     trim: true,
   },
   email_verified: {
@@ -68,6 +71,7 @@ const UserSchema = new mongoose.Schema({
   wx_openid: {
     type: String,
     unique: true,
+    sparse: true,
   },
   wx_unionid: {
     type: String,
@@ -75,18 +79,22 @@ const UserSchema = new mongoose.Schema({
   qq_openid: {
     type: String,
     unique: true,
+    sparse: true,
   },
   douyin_openid: {
     type: String,
     unique: true,
+    sparse: true,
   },
   kuaishou_openid: {
     type: String,
     unique: true,
+    sparse: true,
   },
   alipay_openid: {
     type: String,
     unique: true,
+    sparse: true,
   },
   status: {
     type: Number,
@@ -130,7 +138,7 @@ const UserSchema = new mongoose.Schema({
       notify_comment: true,
       notify_like: true,
       handwriting_font: false,
-      auto_indent: true
+      auto_indent: true,
     },
   },
   medals: {
@@ -230,8 +238,8 @@ UserSchema.methods.comparePassword = async function (candidatePassword) {
 // 检查是否是VIP
 UserSchema.methods.isVip = function () {
   return (
-    (this.role === 1 || this.role === 2) && 
-    (this.vip_expire || this.vipExpireDate) && 
+    (this.role === 1 || this.role === 2) &&
+    (this.vip_expire || this.vipExpireDate) &&
     (this.vip_expire > new Date() || this.vipExpireDate > new Date())
   );
 };
@@ -239,9 +247,7 @@ UserSchema.methods.isVip = function () {
 // 检查是否是SVIP
 UserSchema.methods.isSvip = function () {
   return (
-    this.role === 2 &&
-    this.svipExpireDate &&
-    this.svipExpireDate > new Date()
+    this.role === 2 && this.svipExpireDate && this.svipExpireDate > new Date()
   );
 };
 

@@ -14,8 +14,29 @@ function writeLog(logEntry) {
     logsDir,
     `requests-${new Date().toISOString().slice(0, 10)}.log`
   );
-  const logLine = JSON.stringify(logEntry) + '\n';
-  fs.appendFile(logFile, logLine, (err) => {
+  
+  // 创建易读的日志格式
+  const readableLog = `
+==========================================================================
+[${logEntry.timestamp}] ${logEntry.method} ${logEntry.url}
+IP: ${logEntry.ip} | User: ${logEntry.user_id || '未登录'} | Role: ${logEntry.user_role || 'N/A'}
+Referer: ${logEntry.referer || '-'}
+User-Agent: ${logEntry.user_agent || '-'}
+--------------------------------------------------------------------------
+请求体: ${JSON.stringify(logEntry.body, null, 2).replace(/\n/g, '\n  ')}
+查询参数: ${JSON.stringify(logEntry.query, null, 2).replace(/\n/g, '\n  ')}
+--------------------------------------------------------------------------
+响应: ${logEntry.response.status} | 耗时: ${logEntry.response_time}ms | 大小: ${logEntry.response.size || '-'}
+响应体: ${JSON.stringify(logEntry.response.body, null, 2).replace(/\n/g, '\n  ')}
+${logEntry.error ? `错误: ${JSON.stringify(logEntry.error, null, 2).replace(/\n/g, '\n  ')}` : ''}
+==========================================================================
+`;
+  
+  // 同时写入易读格式和JSON格式
+  const jsonLine = JSON.stringify(logEntry) + '\n';
+  const fullLog = readableLog + '\n' + jsonLine + '\n';
+  
+  fs.appendFile(logFile, fullLog, (err) => {
     if (err) console.error('日志写入失败:', err);
   });
 }
@@ -108,6 +129,26 @@ const logger = async (ctx, next) => {
     logEntry.response.headers = sanitizeHeaders(res.headers);
     logEntry.response.size = res.length || null;
     logEntry.response_time = Date.now() - startTime;
+    
+    // 记录返回内容（脱敏处理）
+    if (res.body) {
+      try {
+        const responseBody = typeof res.body === 'string' ? JSON.parse(res.body) : res.body;
+        // 脱敏处理敏感字段
+        if (responseBody.password) {
+          responseBody.password = '***';
+        }
+        if (responseBody.token) {
+          responseBody.token = '***';
+        }
+        if (responseBody.authorization) {
+          responseBody.authorization = '***';
+        }
+        logEntry.response.body = responseBody;
+      } catch (error) {
+        logEntry.response.body = { message: '[Recorded]' };
+      }
+    }
   } catch (error) {
     // 记录错误信息
     logEntry.response.status = error.status || 500;

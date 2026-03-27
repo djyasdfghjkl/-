@@ -5,6 +5,7 @@ const superadminRouter = new Router();
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const EmailVerification = require("../models/EmailVerification");
+const UserStatsDaily = require("../models/UserStatsDaily");
 const { sendVerificationEmail } = require("../config/email");
 const auth = require("../middleware/auth");
 const { role, canSetRole } = require("../middleware/role");
@@ -220,6 +221,15 @@ router.post("/users/register", async (ctx) => {
   } catch (error) {
     console.error("[注册错误]:", error);
     console.error("[错误堆栈]:", error.stack);
+
+    // 处理 MongoDB 重复键错误
+    if (error.code === 11000) {
+      ctx.status = 400;
+      ctx.body = getError("database.duplicateKey");
+      return;
+    }
+
+    // 处理其他错误
     ctx.status = 500;
     ctx.body = getError("common.serverError");
   }
@@ -292,6 +302,43 @@ router.post("/users/login", async (ctx) => {
       }
     }
 
+    // 获取用户统计数据
+    const statsQuery = {
+      user_id: user._id,
+    };
+
+    // 获取最近7天的统计数据
+    statsQuery.stat_date = {
+      $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const stats = await UserStatsDaily.find(statsQuery)
+      .sort({ stat_date: -1 })
+      .select(
+        "stat_date total_duration session_count ad_request_count ad_exposure_count ad_click_count ad_play_complete_count",
+      );
+
+    // 计算总统计
+    const totalStats = stats.reduce(
+      (acc, item) => {
+        acc.total_duration += item.total_duration;
+        acc.session_count += item.session_count;
+        acc.ad_request_count += item.ad_request_count;
+        acc.ad_exposure_count += item.ad_exposure_count;
+        acc.ad_click_count += item.ad_click_count;
+        acc.ad_play_complete_count += item.ad_play_complete_count;
+        return acc;
+      },
+      {
+        total_duration: 0,
+        session_count: 0,
+        ad_request_count: 0,
+        ad_exposure_count: 0,
+        ad_click_count: 0,
+        ad_play_complete_count: 0,
+      },
+    );
+
     const token = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET || "your-secret-key",
@@ -338,6 +385,15 @@ router.post("/users/login", async (ctx) => {
           signature: user.signature,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          // 新增统计信息
+          stats: {
+            total_duration: totalStats.total_duration,
+            session_count: totalStats.session_count,
+            ad_request_count: totalStats.ad_request_count,
+            ad_exposure_count: totalStats.ad_exposure_count,
+            ad_click_count: totalStats.ad_click_count,
+            ad_play_complete_count: totalStats.ad_play_complete_count,
+          },
         },
         token,
         loginStats: loginStats.success ? loginStats : null,
@@ -373,6 +429,44 @@ router.get("/users/profile", auth, async (ctx) => {
       "[获取个人信息请求]",
       `用户ID: ${user._id}, 用户名: ${user.username}`,
     );
+
+    // 获取用户统计数据
+    const statsQuery = {
+      user_id: user._id,
+    };
+
+    // 获取最近7天的统计数据
+    statsQuery.stat_date = {
+      $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const stats = await UserStatsDaily.find(statsQuery)
+      .sort({ stat_date: -1 })
+      .select(
+        "stat_date total_duration session_count ad_request_count ad_exposure_count ad_click_count ad_play_complete_count",
+      );
+
+    // 计算总统计
+    const totalStats = stats.reduce(
+      (acc, item) => {
+        acc.total_duration += item.total_duration;
+        acc.session_count += item.session_count;
+        acc.ad_request_count += item.ad_request_count;
+        acc.ad_exposure_count += item.ad_exposure_count;
+        acc.ad_click_count += item.ad_click_count;
+        acc.ad_play_complete_count += item.ad_play_complete_count;
+        return acc;
+      },
+      {
+        total_duration: 0,
+        session_count: 0,
+        ad_request_count: 0,
+        ad_exposure_count: 0,
+        ad_click_count: 0,
+        ad_play_complete_count: 0,
+      },
+    );
+
     console.log(
       "[获取个人信息成功]",
       `用户: ${user.username}, 邮箱: ${user.email}, 角色: ${user.role}`,
@@ -411,6 +505,15 @@ router.get("/users/profile", auth, async (ctx) => {
         loginCount: user.loginCount || 0,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        // 新增统计信息
+        stats: {
+          total_duration: totalStats.total_duration,
+          session_count: totalStats.session_count,
+          ad_request_count: totalStats.ad_request_count,
+          ad_exposure_count: totalStats.ad_exposure_count,
+          ad_click_count: totalStats.ad_click_count,
+          ad_play_complete_count: totalStats.ad_play_complete_count,
+        },
       },
     };
   } catch (error) {
@@ -488,6 +591,43 @@ router.put("/users/profile", auth, async (ctx) => {
 
     await user.save();
 
+    // 获取用户统计数据
+    const statsQuery = {
+      user_id: user._id,
+    };
+
+    // 获取最近7天的统计数据
+    statsQuery.stat_date = {
+      $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const stats = await UserStatsDaily.find(statsQuery)
+      .sort({ stat_date: -1 })
+      .select(
+        "stat_date total_duration session_count ad_request_count ad_exposure_count ad_click_count ad_play_complete_count",
+      );
+
+    // 计算总统计
+    const totalStats = stats.reduce(
+      (acc, item) => {
+        acc.total_duration += item.total_duration;
+        acc.session_count += item.session_count;
+        acc.ad_request_count += item.ad_request_count;
+        acc.ad_exposure_count += item.ad_exposure_count;
+        acc.ad_click_count += item.ad_click_count;
+        acc.ad_play_complete_count += item.ad_play_complete_count;
+        return acc;
+      },
+      {
+        total_duration: 0,
+        session_count: 0,
+        ad_request_count: 0,
+        ad_exposure_count: 0,
+        ad_click_count: 0,
+        ad_play_complete_count: 0,
+      },
+    );
+
     console.log(
       "[更新个人信息成功]",
       `用户: ${user.username}, 邮箱: ${user.email}`,
@@ -509,10 +649,33 @@ router.put("/users/profile", auth, async (ctx) => {
         signature: user.signature,
         role: user.role,
         status: user.status,
+        vip_expire: user.vip_expire,
+        vipExpireDate: user.vipExpireDate,
+        svipExpireDate: user.svipExpireDate,
+        balance: user.balance,
+        diary_count: user.diary_count,
+        word_count: user.word_count,
+        like_count: user.like_count,
+        follower_count: user.follower_count,
+        following_count: user.following_count,
         settings: user.settings,
+        medals: user.medals,
+        totalLoginDays: user.totalLoginDays || 0,
+        consecutiveLoginDays: user.consecutiveLoginDays || 0,
         last_login_at: user.last_login_at,
         last_login_ip: user.last_login_ip,
+        loginCount: user.loginCount || 0,
+        createdAt: user.createdAt,
         updatedAt: user.updatedAt,
+        // 新增统计信息
+        stats: {
+          total_duration: totalStats.total_duration,
+          session_count: totalStats.session_count,
+          ad_request_count: totalStats.ad_request_count,
+          ad_exposure_count: totalStats.ad_exposure_count,
+          ad_click_count: totalStats.ad_click_count,
+          ad_play_complete_count: totalStats.ad_play_complete_count,
+        },
       },
     };
   } catch (error) {
@@ -1379,6 +1542,43 @@ router.post("/users/wechat-login", async (ctx) => {
       }
     }
 
+    // 获取用户统计数据
+    const statsQuery = {
+      user_id: user._id,
+    };
+
+    // 获取最近7天的统计数据
+    statsQuery.stat_date = {
+      $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const stats = await UserStatsDaily.find(statsQuery)
+      .sort({ stat_date: -1 })
+      .select(
+        "stat_date total_duration session_count ad_request_count ad_exposure_count ad_click_count ad_play_complete_count",
+      );
+
+    // 计算总统计
+    const totalStats = stats.reduce(
+      (acc, item) => {
+        acc.total_duration += item.total_duration;
+        acc.session_count += item.session_count;
+        acc.ad_request_count += item.ad_request_count;
+        acc.ad_exposure_count += item.ad_exposure_count;
+        acc.ad_click_count += item.ad_click_count;
+        acc.ad_play_complete_count += item.ad_play_complete_count;
+        return acc;
+      },
+      {
+        total_duration: 0,
+        session_count: 0,
+        ad_request_count: 0,
+        ad_exposure_count: 0,
+        ad_click_count: 0,
+        ad_play_complete_count: 0,
+      },
+    );
+
     // 生成JWT token
     const token = jwt.sign(
       { id: user._id },
@@ -1426,6 +1626,15 @@ router.post("/users/wechat-login", async (ctx) => {
           signature: user.signature,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          // 新增统计信息
+          stats: {
+            total_duration: totalStats.total_duration,
+            session_count: totalStats.session_count,
+            ad_request_count: totalStats.ad_request_count,
+            ad_exposure_count: totalStats.ad_exposure_count,
+            ad_click_count: totalStats.ad_click_count,
+            ad_play_complete_count: totalStats.ad_play_complete_count,
+          },
         },
         token,
         isNewUser,
@@ -1436,6 +1645,15 @@ router.post("/users/wechat-login", async (ctx) => {
   } catch (error) {
     console.error("[微信登录错误]:", error);
     console.error("[错误堆栈]:", error.stack);
+
+    // 处理 MongoDB 重复键错误
+    if (error.code === 11000) {
+      ctx.status = 400;
+      ctx.body = getError("database.duplicateKey");
+      return;
+    }
+
+    // 处理其他错误
     ctx.status = 500;
     ctx.body = getError("common.serverError");
   }
@@ -1545,6 +1763,16 @@ router.post("/users/wechat-bind", auth, async (ctx) => {
     };
   } catch (error) {
     console.error("[绑定微信错误]:", error);
+    console.error("[错误堆栈]:", error.stack);
+
+    // 处理 MongoDB 重复键错误
+    if (error.code === 11000) {
+      ctx.status = 400;
+      ctx.body = getError("database.duplicateKey");
+      return;
+    }
+
+    // 处理其他错误
     ctx.status = 500;
     ctx.body = { success: false, message: "绑定微信失败：" + error.message };
   }
@@ -1647,6 +1875,43 @@ router.post("/users/douyin-login", async (ctx) => {
       }
     }
 
+    // 获取用户统计数据
+    const statsQuery = {
+      user_id: user._id,
+    };
+
+    // 获取最近7天的统计数据
+    statsQuery.stat_date = {
+      $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const stats = await UserStatsDaily.find(statsQuery)
+      .sort({ stat_date: -1 })
+      .select(
+        "stat_date total_duration session_count ad_request_count ad_exposure_count ad_click_count ad_play_complete_count",
+      );
+
+    // 计算总统计
+    const totalStats = stats.reduce(
+      (acc, item) => {
+        acc.total_duration += item.total_duration;
+        acc.session_count += item.session_count;
+        acc.ad_request_count += item.ad_request_count;
+        acc.ad_exposure_count += item.ad_exposure_count;
+        acc.ad_click_count += item.ad_click_count;
+        acc.ad_play_complete_count += item.ad_play_complete_count;
+        return acc;
+      },
+      {
+        total_duration: 0,
+        session_count: 0,
+        ad_request_count: 0,
+        ad_exposure_count: 0,
+        ad_click_count: 0,
+        ad_play_complete_count: 0,
+      },
+    );
+
     // 生成JWT token
     const token = jwt.sign(
       { id: user._id },
@@ -1694,6 +1959,15 @@ router.post("/users/douyin-login", async (ctx) => {
           signature: user.signature,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          // 新增统计信息
+          stats: {
+            total_duration: totalStats.total_duration,
+            session_count: totalStats.session_count,
+            ad_request_count: totalStats.ad_request_count,
+            ad_exposure_count: totalStats.ad_exposure_count,
+            ad_click_count: totalStats.ad_click_count,
+            ad_play_complete_count: totalStats.ad_play_complete_count,
+          },
         },
         token,
         isNewUser,
@@ -1704,6 +1978,15 @@ router.post("/users/douyin-login", async (ctx) => {
   } catch (error) {
     console.error("[抖音登录错误]:", error);
     console.error("[错误堆栈]:", error.stack);
+
+    // 处理 MongoDB 重复键错误
+    if (error.code === 11000) {
+      ctx.status = 400;
+      ctx.body = getError("database.duplicateKey");
+      return;
+    }
+
+    // 处理其他错误
     ctx.status = 500;
     ctx.body = getError("common.serverError");
   }
@@ -1809,6 +2092,43 @@ router.post("/users/kuaishou-login", async (ctx) => {
       }
     }
 
+    // 获取用户统计数据
+    const statsQuery = {
+      user_id: user._id,
+    };
+
+    // 获取最近7天的统计数据
+    statsQuery.stat_date = {
+      $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const stats = await UserStatsDaily.find(statsQuery)
+      .sort({ stat_date: -1 })
+      .select(
+        "stat_date total_duration session_count ad_request_count ad_exposure_count ad_click_count ad_play_complete_count",
+      );
+
+    // 计算总统计
+    const totalStats = stats.reduce(
+      (acc, item) => {
+        acc.total_duration += item.total_duration;
+        acc.session_count += item.session_count;
+        acc.ad_request_count += item.ad_request_count;
+        acc.ad_exposure_count += item.ad_exposure_count;
+        acc.ad_click_count += item.ad_click_count;
+        acc.ad_play_complete_count += item.ad_play_complete_count;
+        return acc;
+      },
+      {
+        total_duration: 0,
+        session_count: 0,
+        ad_request_count: 0,
+        ad_exposure_count: 0,
+        ad_click_count: 0,
+        ad_play_complete_count: 0,
+      },
+    );
+
     // 生成JWT token
     const token = jwt.sign(
       { id: user._id },
@@ -1856,6 +2176,15 @@ router.post("/users/kuaishou-login", async (ctx) => {
           signature: user.signature,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          // 新增统计信息
+          stats: {
+            total_duration: totalStats.total_duration,
+            session_count: totalStats.session_count,
+            ad_request_count: totalStats.ad_request_count,
+            ad_exposure_count: totalStats.ad_exposure_count,
+            ad_click_count: totalStats.ad_click_count,
+            ad_play_complete_count: totalStats.ad_play_complete_count,
+          },
         },
         token,
         isNewUser,
@@ -1866,6 +2195,15 @@ router.post("/users/kuaishou-login", async (ctx) => {
   } catch (error) {
     console.error("[快手登录错误]:", error);
     console.error("[错误堆栈]:", error.stack);
+
+    // 处理 MongoDB 重复键错误
+    if (error.code === 11000) {
+      ctx.status = 400;
+      ctx.body = getError("database.duplicateKey");
+      return;
+    }
+
+    // 处理其他错误
     ctx.status = 500;
     ctx.body = getError("common.serverError");
   }
@@ -1971,6 +2309,43 @@ router.post("/users/alipay-login", async (ctx) => {
       }
     }
 
+    // 获取用户统计数据
+    const statsQuery = {
+      user_id: user._id,
+    };
+
+    // 获取最近7天的统计数据
+    statsQuery.stat_date = {
+      $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const stats = await UserStatsDaily.find(statsQuery)
+      .sort({ stat_date: -1 })
+      .select(
+        "stat_date total_duration session_count ad_request_count ad_exposure_count ad_click_count ad_play_complete_count",
+      );
+
+    // 计算总统计
+    const totalStats = stats.reduce(
+      (acc, item) => {
+        acc.total_duration += item.total_duration;
+        acc.session_count += item.session_count;
+        acc.ad_request_count += item.ad_request_count;
+        acc.ad_exposure_count += item.ad_exposure_count;
+        acc.ad_click_count += item.ad_click_count;
+        acc.ad_play_complete_count += item.ad_play_complete_count;
+        return acc;
+      },
+      {
+        total_duration: 0,
+        session_count: 0,
+        ad_request_count: 0,
+        ad_exposure_count: 0,
+        ad_click_count: 0,
+        ad_play_complete_count: 0,
+      },
+    );
+
     // 生成JWT token
     const token = jwt.sign(
       { id: user._id },
@@ -2018,6 +2393,15 @@ router.post("/users/alipay-login", async (ctx) => {
           signature: user.signature,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          // 新增统计信息
+          stats: {
+            total_duration: totalStats.total_duration,
+            session_count: totalStats.session_count,
+            ad_request_count: totalStats.ad_request_count,
+            ad_exposure_count: totalStats.ad_exposure_count,
+            ad_click_count: totalStats.ad_click_count,
+            ad_play_complete_count: totalStats.ad_play_complete_count,
+          },
         },
         token,
         isNewUser,
@@ -2028,6 +2412,15 @@ router.post("/users/alipay-login", async (ctx) => {
   } catch (error) {
     console.error("[支付宝登录错误]:", error);
     console.error("[错误堆栈]:", error.stack);
+
+    // 处理 MongoDB 重复键错误
+    if (error.code === 11000) {
+      ctx.status = 400;
+      ctx.body = getError("database.duplicateKey");
+      return;
+    }
+
+    // 处理其他错误
     ctx.status = 500;
     ctx.body = getError("common.serverError");
   }
@@ -2130,6 +2523,43 @@ router.post("/users/qq-login", async (ctx) => {
       }
     }
 
+    // 获取用户统计数据
+    const statsQuery = {
+      user_id: user._id,
+    };
+
+    // 获取最近7天的统计数据
+    statsQuery.stat_date = {
+      $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    };
+
+    const stats = await UserStatsDaily.find(statsQuery)
+      .sort({ stat_date: -1 })
+      .select(
+        "stat_date total_duration session_count ad_request_count ad_exposure_count ad_click_count ad_play_complete_count",
+      );
+
+    // 计算总统计
+    const totalStats = stats.reduce(
+      (acc, item) => {
+        acc.total_duration += item.total_duration;
+        acc.session_count += item.session_count;
+        acc.ad_request_count += item.ad_request_count;
+        acc.ad_exposure_count += item.ad_exposure_count;
+        acc.ad_click_count += item.ad_click_count;
+        acc.ad_play_complete_count += item.ad_play_complete_count;
+        return acc;
+      },
+      {
+        total_duration: 0,
+        session_count: 0,
+        ad_request_count: 0,
+        ad_exposure_count: 0,
+        ad_click_count: 0,
+        ad_play_complete_count: 0,
+      },
+    );
+
     // 生成JWT token
     const token = jwt.sign(
       { id: user._id },
@@ -2177,6 +2607,15 @@ router.post("/users/qq-login", async (ctx) => {
           signature: user.signature,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,
+          // 新增统计信息
+          stats: {
+            total_duration: totalStats.total_duration,
+            session_count: totalStats.session_count,
+            ad_request_count: totalStats.ad_request_count,
+            ad_exposure_count: totalStats.ad_exposure_count,
+            ad_click_count: totalStats.ad_click_count,
+            ad_play_complete_count: totalStats.ad_play_complete_count,
+          },
         },
         token,
         isNewUser,
@@ -2187,6 +2626,15 @@ router.post("/users/qq-login", async (ctx) => {
   } catch (error) {
     console.error("[QQ登录错误]:", error);
     console.error("[错误堆栈]:", error.stack);
+
+    // 处理 MongoDB 重复键错误
+    if (error.code === 11000) {
+      ctx.status = 400;
+      ctx.body = getError("database.duplicateKey");
+      return;
+    }
+
+    // 处理其他错误
     ctx.status = 500;
     ctx.body = getError("common.serverError");
   }
@@ -2273,7 +2721,8 @@ router.get("/users/stats", auth, async (ctx) => {
         regular: user.medals || [],
         special: user.special_medals || [],
         total_count:
-          (user.medals?.length || 0) + (user.special_medals?.length || 0),
+          (user.medals ? user.medals.length : 0) +
+          (user.special_medals ? user.special_medals.length : 0),
       };
     }
 

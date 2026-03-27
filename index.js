@@ -21,14 +21,23 @@ const app = new Koa();
 const cors = require("@koa/cors");
 app.use(
   cors({
-    origin: "*", // 调试阶段允许所有来源（可后续收紧）
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: (ctx) => {
+      // 允许所有来源，或者根据需要配置白名单
+      const origin = ctx.request.header.origin;
+      return origin || "*";
+    },
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowHeaders: [
       "Content-Type",
       "Authorization",
       "ngrok-skip-browser-warning",
+      "Referer",
+      "User-Agent",
+      "X-Requested-With",
     ],
+    exposeHeaders: ["Authorization"],
     credentials: true,
+    maxAge: 86400, // 24小时
   }),
 );
 
@@ -219,6 +228,13 @@ const emojiRouterModule = require("./routes/emoji");
 const emojiRouter = emojiRouterModule.router;
 const emojiAdminRouter = emojiRouterModule.adminRouter;
 const moodRouter = require("./routes/mood");
+const topicRouterModule = require("./routes/topic");
+const topicRouter = topicRouterModule.router;
+const topicAdminRouter = topicRouterModule.adminRouter;
+const adRouter = require("./routes/ad");
+const adEarningsRouter = require("./routes/ad-earnings");
+const statsRouter = require("./routes/stats");
+const analysisRouter = require("./routes/analysis");
 
 // 注册路由的函数
 function registerRoutes(app, routers) {
@@ -252,6 +268,12 @@ registerRoutes(app, [
   emojiRouter,
   emojiAdminRouter,
   moodRouter,
+  topicRouter,
+  topicAdminRouter,
+  adRouter,
+  adEarningsRouter,
+  statsRouter,
+  analysisRouter,
 ]);
 
 // 端口自动递增函数

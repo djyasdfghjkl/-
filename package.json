@@ -5,7 +5,15 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "build": "npm run clean && npm run pack",
+    "clean": "node scripts/clean.js",
+    "pack": "node scripts/pack.js",
+    "deploy:prep": "npm run clean && npm install --production",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop ecosystem.config.js",
+    "pm2:restart": "pm2 restart ecosystem.config.js",
+    "pm2:logs": "pm2 logs note-backend"
   },
   "dependencies": {
     "@koa/cors": "^5.0.0",
@@ -21,6 +29,7 @@
     "koa-multer": "^1.0.2",
     "koa-router": "^10.0.0",
     "koa-static": "^5.0.0",
+    "marked": "^17.0.4",
     "mongoose": "^5.13.0",
     "mysql2": "^2.3.0",
     "nodemailer": "^7.0.12",

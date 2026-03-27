@@ -8,6 +8,41 @@ const Like = require("../models/Like");
 const auth = require("../middleware/auth");
 const optionalAuth = require("../middleware/optionalAuth");
 const { role } = require("../middleware/role");
+const DiaryAnalyzer = require("../utils/diaryAnalyzer");
+
+// 统一格式化广场日记数据
+function formatSquareDiary(diary, isLiked = false, isFollowed = false) {
+  return {
+    id: diary._id,
+    user: {
+      id: diary.user_id._id,
+      nickname: diary.user_id.nickname,
+      avatar: diary.user_id.avatar,
+    },
+    title: diary.title,
+    content: diary.content,
+    cover: diary.cover,
+    images: diary.images,
+    tags: diary.tags,
+    weather: diary.weather,
+    mood: diary.mood,
+    signature: diary.signature,
+    location: diary.location,
+    location_city: diary.location_city,
+    location_coords: diary.location_coords,
+    diary_date: diary.diary_date,
+    created_at: diary.created_at,
+    updated_at: diary.updatedAt,
+    stats: {
+      like_count: diary.like_count,
+      comment_count: diary.comment_count,
+      share_count: diary.share_count,
+      view_count: diary.view_count,
+    },
+    is_liked: isLiked,
+    is_followed: isFollowed,
+  };
+}
 
 // ==================== 用户端路由 ====================
 
@@ -150,6 +185,16 @@ router.post("/diaries", auth, async (ctx) => {
     await newDiary.save();
 
     console.log("[创建日记成功]", `用户: ${user.username}, 标题: ${title}`);
+
+    // 异步触发日记分析（不阻塞请求）
+    (async () => {
+      try {
+        await DiaryAnalyzer.analyzeDiary(newDiary);
+      } catch (analysisError) {
+        console.error("[日记分析错误]", analysisError);
+      }
+    })();
+
     ctx.status = 201;
     ctx.body = {
       success: true,
@@ -227,12 +272,54 @@ router.get("/diaries", auth, async (ctx) => {
     const diaries = await Diary.find(query)
       .sort({ is_top: -1, diary_date: -1, updatedAt: -1 })
       .skip((page - 1) * per_page)
-      .limit(parseInt(per_page));
+      .limit(parseInt(per_page))
+      .lean(); // 使用lean()返回普通JavaScript对象，确保所有字段都包含
 
     console.log("[获取日记列表成功]", `共 ${total} 篇日记`);
+
+    // 确保所有字段都正确返回，lean()已经返回普通JavaScript对象
+    const formattedDiaries = diaries.map((diary) => {
+      return {
+        ...diary,
+        id: diary._id,
+        // 确保所有字段都明确包含
+        title: diary.title,
+        content: diary.content,
+        diary_date: diary.diary_date,
+        weather: diary.weather,
+        mood: diary.mood,
+        signature: diary.signature,
+        location: diary.location,
+        location_city: diary.location_city,
+        location_coords: diary.location_coords,
+        cover: diary.cover,
+        images: diary.images,
+        tags: diary.tags,
+        is_public: diary.is_public,
+        is_top: diary.is_top,
+        status: diary.status,
+        word_count: diary.word_count,
+        view_count: diary.view_count,
+        like_count: diary.like_count,
+        comment_count: diary.comment_count,
+        share_count: diary.share_count,
+        score: diary.score,
+        event_id: diary.event_id,
+        createdAt: diary.createdAt,
+        updatedAt: diary.updatedAt,
+      };
+    });
+
+    if (formattedDiaries.length > 0) {
+      console.log(
+        "[日记示例数据]",
+        JSON.stringify(formattedDiaries[0], null, 2),
+      );
+    }
+
     ctx.body = {
       success: true,
-      data: diaries,
+      data: formattedDiaries,
       pagination: {
         total,
         page: parseInt(page),
@@ -441,28 +528,7 @@ router.get("/diaries/square", optionalAuth, async (ctx) => {
           });
         }
 
-        return {
-          id: diary._id,
-          user: {
-            id: diary.user_id._id,
-            nickname: diary.user_id.nickname,
-            avatar: diary.user_id.avatar,
-          },
-          title: diary.title,
-          content: diary.content,
-          cover: diary.cover,
-          images: diary.images,
-          tags: diary.tags,
-          location: diary.location,
-          created_at: diary.created_at,
-          stats: {
-            like_count: diary.like_count,
-            comment_count: diary.comment_count,
-            share_count: diary.share_count,
-          },
-          is_liked: isLiked,
-          is_followed: isFollowed,
-        };
+        return formatSquareDiary(diary, isLiked, isFollowed);
       }),
     );
 
@@ -672,6 +738,16 @@ router.put("/diaries/:id", auth, async (ctx) => {
     await diary.save();
 
     console.log("[更新日记成功]", `标题: ${diary.title}`);
+
+    // 异步触发日记分析（不阻塞请求）
+    (async () => {
+      try {
+        await DiaryAnalyzer.analyzeDiary(diary);
+      } catch (analysisError) {
+        console.error("[日记分析错误]", analysisError);
+      }
+    })();
+
     ctx.body = {
       success: true,
       message: "日记更新成功",

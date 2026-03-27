@@ -83,7 +83,8 @@ router.post("/files/upload", auth, upload.single("file"), async (ctx) => {
     }
 
     // File uploaded successfully
-    const serverUrl = ctx.protocol + '://' + ctx.host;
+    // 使用 https 协议以满足微信小程序要求
+    const serverUrl = 'https://' + ctx.host;
     ctx.status = 200;
     ctx.body = {
       success: true,

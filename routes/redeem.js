@@ -220,9 +220,9 @@ router.post("/api/redeem/use", auth, async (ctx) => {
           user.vipExpireDate = now;
         }
         user.vipExpireDate = addDays(user.vipExpireDate, redeemCode.value);
-        // 非超级管理员与非管理员才更新角色
-        if (user.role !== "superadmin" && user.role !== "admin") {
-          user.role = "vip";
+        // 非超级管理员(4)与非管理员(3)才更新角色
+        if (user.role !== 4 && user.role !== 3) {
+          user.role = 1;
         }
         result = {
           type: "vip",
@@ -236,9 +236,9 @@ router.post("/api/redeem/use", auth, async (ctx) => {
           user.svipExpireDate = now;
         }
         user.svipExpireDate = addDays(user.svipExpireDate, redeemCode.value);
-        // 只有非超级管理员才更新角色
-        if (user.role !== "superadmin") {
-          user.role = "svip";
+        // 只有非超级管理员(4)才更新角色
+        if (user.role !== 4) {
+          user.role = 2;
         }
         result = {
           type: "svip",
