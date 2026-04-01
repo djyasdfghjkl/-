@@ -19,7 +19,7 @@ const { role } = require("../middleware/role");
  *       401:
  *         description: 未认证
  */
-router.get("/api/dictionaries", auth, async (ctx) => {
+router.get("/dictionaries", auth, async (ctx) => {
   try {
     const dictionaries = await Dictionary.find().sort("type");
     ctx.body = {
@@ -50,7 +50,7 @@ router.get("/api/dictionaries", auth, async (ctx) => {
  *       404:
  *         description: 字典不存在
  */
-router.get("/api/dictionaries/:type", async (ctx) => {
+router.get("/dictionaries/:type", async (ctx) => {
   try {
     const { type } = ctx.params;
     const dictionary = await Dictionary.findOne({ type });
