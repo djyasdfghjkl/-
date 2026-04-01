@@ -1,9 +1,9 @@
 const User = require("../models/User");
+const bcrypt = require("bcryptjs");
 
 // 初始化超级管理员账号
 const initSuperAdmin = async () => {
   try {
-    // 检查超级管理员是否已存在（同时检查用户名或邮箱）
     const existingSuperAdmin = await User.findOne({
       $or: [
         { username: "djy" },
@@ -12,7 +12,6 @@ const initSuperAdmin = async () => {
     });
 
     if (!existingSuperAdmin) {
-      // 创建超级管理员账号
       const superAdmin = new User({
         username: "djy",
         nickname: "超级管理员",
@@ -21,11 +20,17 @@ const initSuperAdmin = async () => {
         role: 4,
         status: 1,
       });
-
       await superAdmin.save();
       console.log("超级管理员账号已创建: 用户名 djy，密码 19223073501");
     } else {
-      console.log("超级管理员账号已存在");
+      // 检查密码是否是 bcrypt 格式，不是则修复
+      if (!existingSuperAdmin.password || !existingSuperAdmin.password.startsWith("$2")) {
+        const hashed = await bcrypt.hash("19223073501", 10);
+        await User.updateOne({ _id: existingSuperAdmin._id }, { $set: { password: hashed } });
+        console.log("超级管理员密码已修复（明文 -> bcrypt）");
+      } else {
+        console.log("超级管理员账号已存在");
+      }
     }
   } catch (error) {
     console.error("初始化超级管理员账号失败:", error.message);
