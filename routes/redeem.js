@@ -77,16 +77,19 @@ adminRouter.post(
   role(["admin", "superadmin"]),
   async (ctx) => {
     try {
-      const { type, value, count, expireDays, medalId, description, maxUses } = ctx.request.body;
+      const {
+        type, value, count, expireDays,
+        medalId, description, maxUses,
+        stackable, unique_per_type,
+      } = ctx.request.body;
       const user = ctx.state.user;
 
-      if (!type || !value || !count || !expireDays) {
+      if (!type || value === undefined || !count || !expireDays) {
         ctx.status = 400;
         ctx.body = getError("common.badRequest");
         return;
       }
 
-      // 特殊勋章需要medalId
       if (type === "special_medal" && !medalId) {
         ctx.status = 400;
         ctx.body = getError("common.badRequest");
@@ -99,9 +102,6 @@ adminRouter.post(
         return;
       }
 
-      // 验证maxUses参数
-      const finalMaxUses = maxUses ? Math.max(1, parseInt(maxUses)) : 1;
-
       const validTypes = ["vip", "svip", "balance", "transfer_percent", "special_medal", "points", "level"];
       if (!validTypes.includes(type)) {
         ctx.status = 400;
@@ -109,18 +109,18 @@ adminRouter.post(
         return;
       }
 
+      const finalMaxUses = maxUses ? Math.max(1, parseInt(maxUses)) : 1;
+      // stackable 默认 true（叠加），unique_per_type 默认 false（不限制同类型）
+      const finalStackable = stackable !== undefined ? Boolean(stackable) : true;
+      const finalUniquePerType = unique_per_type !== undefined ? Boolean(unique_per_type) : false;
+
       const codes = [];
       const expireDate = addDays(new Date(), expireDays);
 
       for (let i = 0; i < count; i++) {
         const code = generateRedeemCode();
-
-        // 检查兑换码是否已存在
         const existingCode = await RedeemCode.findOne({ code });
-        if (existingCode) {
-          i--; // 重新生成
-          continue;
-        }
+        if (existingCode) { i--; continue; }
 
         const redeemCodeData = {
           code,
@@ -131,16 +131,16 @@ adminRouter.post(
           maxUses: finalMaxUses,
           currentUses: 0,
           createdBy: user._id,
-          usedUsers: []
+          usedUsers: [],
+          stackable: finalStackable,
+          unique_per_type: finalUniquePerType,
         };
 
-        // 如果是特殊勋章类型，添加medalId
         if (type === "special_medal" && medalId) {
           redeemCodeData.medalId = medalId;
         }
 
         const redeemCode = new RedeemCode(redeemCodeData);
-
         await redeemCode.save();
         codes.push(code);
       }
@@ -156,11 +156,12 @@ adminRouter.post(
           count: codes.length,
           description: description || '',
           maxUses: finalMaxUses,
+          stackable: finalStackable,
+          unique_per_type: finalUniquePerType,
         },
       };
     } catch (error) {
       console.error("生成兑换码错误:", error);
-      console.error("错误堆栈:", error.stack);
       ctx.status = 500;
       ctx.body = getError("redeem.generateFailed");
     }
@@ -208,7 +209,6 @@ router.post("/redeem/use", auth, async (ctx) => {
       return;
     }
 
-    // 查找兑换码
     const redeemCode = await RedeemCode.findOne({ code });
 
     if (!redeemCode) {
@@ -217,128 +217,107 @@ router.post("/redeem/use", auth, async (ctx) => {
       return;
     }
 
-    // 检查用户是否已经使用过这个兑换码
-    if (redeemCode.usedUsers && redeemCode.usedUsers.includes(user._id.toString())) {
-      ctx.status = 400;
-      ctx.body = {
-        success: false,
-        message: "您已经使用过这个兑换码了"
-      };
-      return;
-    }
-
-    // 检查兑换码是否已达到最大使用次数
-    if (redeemCode.currentUses >= redeemCode.maxUses) {
-      ctx.status = 400;
-      ctx.body = {
-        success: false,
-        message: "这个兑换码已达到最大使用次数"
-      };
-      return;
-    }
-
-    // 检查兑换码是否过期
+    // 检查是否过期
     if (new Date() > redeemCode.expiresAt) {
       ctx.status = 400;
       ctx.body = getError("redeem.codeExpired");
       return;
     }
 
+    // 检查是否已达最大使用次数
+    if (redeemCode.currentUses >= redeemCode.maxUses) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "这个兑换码已达到最大使用次数" };
+      return;
+    }
+
+    // 检查当前用户是否已用过这个具体的码
+    if (redeemCode.usedUsers && redeemCode.usedUsers.map(id => id.toString()).includes(user._id.toString())) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "您已经使用过这个兑换码了" };
+      return;
+    }
+
+    // unique_per_type：检查用户是否已用过同类型的任意兑换码
+    if (redeemCode.unique_per_type) {
+      const usedSameType = await RedeemCode.findOne({
+        type: redeemCode.type,
+        usedUsers: user._id,
+        _id: { $ne: redeemCode._id },
+      });
+      if (usedSameType) {
+        ctx.status = 400;
+        ctx.body = {
+          success: false,
+          message: `您已经使用过 ${redeemCode.type} 类型的兑换码了，每人限用一次`,
+        };
+        return;
+      }
+    }
+
     const now = new Date();
     let result = {};
 
-    // 根据兑换码类型处理
     switch (redeemCode.type) {
-      case "vip":
-        // 处理VIP兑换
-        if (!user.vipExpireDate || user.vipExpireDate < now) {
-          user.vipExpireDate = now;
-        }
-        user.vipExpireDate = addDays(user.vipExpireDate, redeemCode.value);
-        // 非超级管理员(4)与非管理员(3)才更新角色
-        if (user.role !== 4 && user.role !== 3) {
-          user.role = 1;
-        }
-        result = {
-          type: "vip",
-          expireDate: formatDateTime(user.vipExpireDate),
-        };
+      case "vip": {
+        // stackable=true：在现有到期时间上叠加；false：从现在起重新计算
+        const base = redeemCode.stackable && user.vipExpireDate && user.vipExpireDate > now
+          ? user.vipExpireDate
+          : now;
+        user.vipExpireDate = addDays(base, redeemCode.value);
+        if (user.role !== 4 && user.role !== 3) user.role = 1;
+        result = { type: "vip", expire_date: formatDateTime(user.vipExpireDate), stackable: redeemCode.stackable };
         break;
-
-      case "svip":
-        // 处理SVIP兑换
-        if (!user.svipExpireDate || user.svipExpireDate < now) {
-          user.svipExpireDate = now;
-        }
-        user.svipExpireDate = addDays(user.svipExpireDate, redeemCode.value);
-        // 只有非超级管理员(4)才更新角色
-        if (user.role !== 4) {
-          user.role = 2;
-        }
-        result = {
-          type: "svip",
-          expireDate: formatDateTime(user.svipExpireDate),
-        };
+      }
+      case "svip": {
+        const base = redeemCode.stackable && user.svipExpireDate && user.svipExpireDate > now
+          ? user.svipExpireDate
+          : now;
+        user.svipExpireDate = addDays(base, redeemCode.value);
+        if (user.role !== 4) user.role = 2;
+        result = { type: "svip", expire_date: formatDateTime(user.svipExpireDate), stackable: redeemCode.stackable };
         break;
-
+      }
       case "balance":
-        // 处理余额兑换
         user.balance += redeemCode.value;
         result = { type: "balance", balance: user.balance };
         break;
-
       case "transfer_percent":
-        // 处理转账百分比兑换
         user.transfer_percent = Math.min(200, Math.max(0, redeemCode.value));
         result = { type: "transfer_percent", transfer_percent: user.transfer_percent };
         break;
-
       case "special_medal":
-        // 处理特殊勋章兑换
         if (redeemCode.medalId) {
           if (!user.special_medals.includes(redeemCode.medalId.toString())) {
             user.special_medals.push(redeemCode.medalId.toString());
           }
-          result = { type: "special_medal", medalId: redeemCode.medalId, special_medals: user.special_medals };
+          result = { type: "special_medal", medal_id: redeemCode.medalId };
         } else {
-          result = { type: "special_medal", message: "兑换成功" };
+          result = { type: "special_medal" };
         }
         break;
-
       case "points":
-        // 处理积分兑换
         user.points += redeemCode.value;
         result = { type: "points", points: user.points };
         break;
-
       case "level":
-        // 处理等级兑换
         user.user_level = Math.max(user.user_level, redeemCode.value);
         result = { type: "level", user_level: user.user_level };
         break;
     }
 
-    // 更新用户信息
     await user.save();
 
-    // 更新兑换码使用信息
     redeemCode.currentUses = (redeemCode.currentUses || 0) + 1;
-    
-    // 记录使用用户
-    if (!redeemCode.usedUsers) {
-      redeemCode.usedUsers = [];
-    }
-    if (!redeemCode.usedUsers.includes(user._id.toString())) {
-      redeemCode.usedUsers.push(user._id.toString());
-    }
-    
-    // 如果是单次使用的兑换码，标记为已使用
+    if (!redeemCode.usedUsers) redeemCode.usedUsers = [];
+    redeemCode.usedUsers.push(user._id);
+
     if (redeemCode.maxUses === 1) {
       redeemCode.isUsed = true;
       redeemCode.usedBy = user._id;
       redeemCode.usedAt = now;
     }
-    
+
     await redeemCode.save();
 
     ctx.body = {
@@ -348,7 +327,6 @@ router.post("/redeem/use", auth, async (ctx) => {
     };
   } catch (error) {
     console.error("使用兑换码错误:", error);
-    console.error("错误堆栈:", error.stack);
     ctx.status = 500;
     ctx.body = getError("common.serverError");
   }
@@ -436,6 +414,8 @@ adminRouter.get(
             : c.currentUses >= c.maxUses
             ? "已用完"
             : "可用",
+        stackable: c.stackable !== false, // 默认 true
+        unique_per_type: c.unique_per_type || false,
         expires_at: c.expiresAt,
         created_at: c.createdAt,
         created_by: c.createdBy

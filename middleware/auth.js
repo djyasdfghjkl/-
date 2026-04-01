@@ -48,6 +48,33 @@ const auth = async (ctx, next) => {
     }
 
     ctx.state.user = user;
+
+    // 检查 VIP/SVIP 是否到期，自动降级
+    const now = new Date();
+    let roleChanged = false;
+
+    if (user.role === 2) {
+      // SVIP：svipExpireDate 到期降为普通用户
+      const svipExpired = !user.svipExpireDate || user.svipExpireDate < now;
+      if (svipExpired) {
+        // SVIP 到期，检查是否还有 VIP
+        const vipExpired = !user.vipExpireDate || user.vipExpireDate < now;
+        user.role = vipExpired ? 0 : 1;
+        roleChanged = true;
+      }
+    } else if (user.role === 1) {
+      // VIP：vipExpireDate 到期降为普通用户
+      const vipExpired = !user.vipExpireDate || user.vipExpireDate < now;
+      if (vipExpired) {
+        user.role = 0;
+        roleChanged = true;
+      }
+    }
+
+    if (roleChanged) {
+      await user.save();
+    }
+
     await next();
   } catch (error) {
     console.error("认证错误:", error);
