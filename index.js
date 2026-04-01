@@ -235,6 +235,12 @@ const adRouter = require("./routes/ad");
 const adEarningsRouter = require("./routes/ad-earnings");
 const statsRouter = require("./routes/stats");
 const analysisRouter = require("./routes/analysis");
+const tagRouterModule = require("./routes/tag");
+const tagRouter = tagRouterModule.router;
+const tagAdminRouter = tagRouterModule.adminRouter;
+const notebookRouterModule = require("./routes/notebook");
+const notebookRouter = notebookRouterModule.router;
+const notebookAdminRouter = notebookRouterModule.adminRouter;
 
 // 注册路由的函数
 function registerRoutes(app, routers) {
@@ -274,6 +280,10 @@ registerRoutes(app, [
   adEarningsRouter,
   statsRouter,
   analysisRouter,
+  tagRouter,
+  tagAdminRouter,
+  notebookRouter,
+  notebookAdminRouter,
 ]);
 
 // 端口自动递增函数

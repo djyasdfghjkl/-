@@ -42,24 +42,32 @@ const RedeemCodeSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  // 预留扩展字段
-  extra1: {
+  // 新增字段
+  description: {
     type: String,
-    trim: true
+    trim: true,
+    default: '',
+    maxlength: 200
   },
-  extra2: {
-    type: String,
-    trim: true
+  maxUses: {
+    type: Number,
+    default: 1,
+    min: 1
   },
-  extra3: {
-    type: Number
+  currentUses: {
+    type: Number,
+    default: 0,
+    min: 0
   },
-  extra4: {
-    type: Boolean
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   },
-  extra5: {
-    type: Object
-  }
+  usedUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 });
 
 module.exports = mongoose.model('RedeemCode', RedeemCodeSchema);

@@ -40,7 +40,7 @@ const generateRedeemCode = (length = 12) => {
  *             properties:
  *               type:
  *                 type: string
- *                 enum: [vip, svip, balance]
+ *                 enum: [vip, svip, balance, transfer_percent, special_medal, points, level]
  *               value:
  *                 type: number
  *                 description: 兑换码价值（天数或金额）
@@ -50,6 +50,17 @@ const generateRedeemCode = (length = 12) => {
  *               expireDays:
  *                 type: number
  *                 description: 兑换码有效期（天）
+ *               description:
+ *                 type: string
+ *                 description: 兑换码描述/用途（可选）
+ *                 maxLength: 200
+ *               maxUses:
+ *                 type: number
+ *                 description: 最大使用人数（可选，默认1）
+ *                 minimum: 1
+ *               medalId:
+ *                 type: string
+ *                 description: 特殊勋章ID（仅special_medal类型需要）
  *     responses:
  *       200:
  *         description: 生成成功
@@ -66,7 +77,8 @@ adminRouter.post(
   role(["admin", "superadmin"]),
   async (ctx) => {
     try {
-      const { type, value, count, expireDays, medalId } = ctx.request.body;
+      const { type, value, count, expireDays, medalId, description, maxUses } = ctx.request.body;
+      const user = ctx.state.user;
 
       if (!type || !value || !count || !expireDays) {
         ctx.status = 400;
@@ -86,6 +98,9 @@ adminRouter.post(
         ctx.body = getError("common.badRequest");
         return;
       }
+
+      // 验证maxUses参数
+      const finalMaxUses = maxUses ? Math.max(1, parseInt(maxUses)) : 1;
 
       const validTypes = ["vip", "svip", "balance", "transfer_percent", "special_medal", "points", "level"];
       if (!validTypes.includes(type)) {
@@ -112,6 +127,11 @@ adminRouter.post(
           type,
           value,
           expiresAt: expireDate,
+          description: description || '',
+          maxUses: finalMaxUses,
+          currentUses: 0,
+          createdBy: user._id,
+          usedUsers: []
         };
 
         // 如果是特殊勋章类型，添加medalId
@@ -134,6 +154,8 @@ adminRouter.post(
           value,
           expiresAt: expireDate,
           count: codes.length,
+          description: description || '',
+          maxUses: finalMaxUses,
         },
       };
     } catch (error) {
@@ -195,10 +217,23 @@ router.post("/api/redeem/use", auth, async (ctx) => {
       return;
     }
 
-    // 检查兑换码是否已使用
-    if (redeemCode.isUsed) {
+    // 检查用户是否已经使用过这个兑换码
+    if (redeemCode.usedUsers && redeemCode.usedUsers.includes(user._id.toString())) {
       ctx.status = 400;
-      ctx.body = getError("redeem.codeUsed");
+      ctx.body = {
+        success: false,
+        message: "您已经使用过这个兑换码了"
+      };
+      return;
+    }
+
+    // 检查兑换码是否已达到最大使用次数
+    if (redeemCode.currentUses >= redeemCode.maxUses) {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        message: "这个兑换码已达到最大使用次数"
+      };
       return;
     }
 
@@ -286,10 +321,24 @@ router.post("/api/redeem/use", auth, async (ctx) => {
     // 更新用户信息
     await user.save();
 
-    // 标记兑换码为已使用
-    redeemCode.isUsed = true;
-    redeemCode.usedBy = user._id;
-    redeemCode.usedAt = now;
+    // 更新兑换码使用信息
+    redeemCode.currentUses = (redeemCode.currentUses || 0) + 1;
+    
+    // 记录使用用户
+    if (!redeemCode.usedUsers) {
+      redeemCode.usedUsers = [];
+    }
+    if (!redeemCode.usedUsers.includes(user._id.toString())) {
+      redeemCode.usedUsers.push(user._id.toString());
+    }
+    
+    // 如果是单次使用的兑换码，标记为已使用
+    if (redeemCode.maxUses === 1) {
+      redeemCode.isUsed = true;
+      redeemCode.usedBy = user._id;
+      redeemCode.usedAt = now;
+    }
+    
     await redeemCode.save();
 
     ctx.body = {
@@ -323,7 +372,7 @@ router.post("/api/redeem/use", auth, async (ctx) => {
  *         name: isUsed
  *         schema:
  *           type: boolean
- *         description: 是否已使用（可选）
+ *         description: 是否已使用（可选，仅适用于单次使用的兑换码）
  *     responses:
  *       200:
  *         description: 获取成功
@@ -346,8 +395,10 @@ adminRouter.get(
 
       const codes = await RedeemCode.find(query)
         .populate("usedBy", "username email")
+        .populate("createdBy", "username email")
+        .populate("usedUsers", "username email")
         .sort({ createdAt: -1 })
-        .limit(50);
+        .limit(100);
 
       ctx.body = {
         success: true,

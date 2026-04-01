@@ -179,11 +179,80 @@ const AnalysisHandlers = {
     // 获取用户所有日记分析
     const analyses = await DiaryAnalysis.find({ user_id: user._id });
 
+    // 词云过滤规则 - 只保留中文字符
+    const shouldFilterWordCloudWord = (word) => {
+      // 只保留包含中文字符的词
+      if (!/[\u4e00-\u9fa5]/.test(word)) {
+        return true;
+      }
+
+      const lowerWord = word.toLowerCase();
+
+      // 过滤URL相关
+      if (
+        lowerWord.includes("http") ||
+        lowerWord.includes("www") ||
+        lowerWord.includes(".com") ||
+        lowerWord.includes(".cn") ||
+        lowerWord.includes(".net") ||
+        lowerWord.includes(".io") ||
+        lowerWord.includes(".dev") ||
+        lowerWord.includes(".org")
+      ) {
+        return true;
+      }
+
+      // 过滤技术术语和文件名
+      const techTerms = [
+        "image",
+        "jpg",
+        "jpeg",
+        "png",
+        "gif",
+        "bmp",
+        "webp",
+        "svg",
+        "mp3",
+        "mp4",
+        "wav",
+        "pdf",
+        "doc",
+        "docx",
+        "xls",
+        "xlsx",
+        "zip",
+        "rar",
+        "tar",
+        "gz",
+        "7z",
+        "ngrok",
+        "free",
+        "dev",
+      ];
+      if (techTerms.includes(lowerWord)) {
+        return true;
+      }
+
+      // 过滤纯数字
+      if (/^[0-9]+$/.test(word)) {
+        return true;
+      }
+
+      // 过滤包含特殊字符的词
+      if (/[!@#$%^&*()_+=\[\]{};:'"\\|,.<>/?`~]/.test(word)) {
+        return true;
+      }
+
+      return false;
+    };
+
     // 统计关键词
     const keywordCount = {};
     analyses.forEach((analysis) => {
       (analysis.keywords || []).forEach((keyword) => {
-        keywordCount[keyword] = (keywordCount[keyword] || 0) + 1;
+        if (keyword && !shouldFilterWordCloudWord(keyword)) {
+          keywordCount[keyword] = (keywordCount[keyword] || 0) + 1;
+        }
       });
     });
 
@@ -794,6 +863,56 @@ router.post("/analysis/caring-message/refresh", auth, async (ctx) => {
     ctx.body = {
       success: false,
       message: "刷新关怀语录失败：" + error.message,
+    };
+  }
+});
+
+/**
+ * @swagger
+ * /api/analysis/reanalyze-all:
+ *   post:
+ *     summary: 重新分析所有日记（清理旧数据）
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 重新分析成功
+ */
+router.post("/analysis/reanalyze-all", auth, async (ctx) => {
+  try {
+    const user = ctx.state.user;
+
+    // 获取用户所有日记
+    const diaries = await Diary.find({ user_id: user._id, status: 1 });
+
+    // 删除旧的分析数据
+    await DiaryAnalysis.deleteMany({ user_id: user._id });
+
+    // 重新分析每篇日记
+    let successCount = 0;
+    for (const diary of diaries) {
+      try {
+        await DiaryAnalyzer.analyzeDiary(diary);
+        successCount++;
+      } catch (error) {
+        console.error(`分析日记失败 diary_id=${diary._id}:`, error);
+      }
+    }
+
+    ctx.body = {
+      success: true,
+      message: `重新分析完成，成功 ${successCount}/${diaries.length} 篇`,
+      data: {
+        total: diaries.length,
+        success: successCount,
+      },
+    };
+  } catch (error) {
+    console.error("[重新分析所有日记错误]:", error);
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: "重新分析失败：" + error.message,
     };
   }
 });

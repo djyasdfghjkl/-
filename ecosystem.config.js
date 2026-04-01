@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "note-backend",
       script: "index.js",
-      cwd: "/path/to/your/note", // 替换为你的项目路径
+      cwd: __dirname, // 自动使用当前目录
       instances: 1,
       autorestart: true,
       watch: false,

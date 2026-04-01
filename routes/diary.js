@@ -586,6 +586,266 @@ router.get("/diaries/square", optionalAuth, async (ctx) => {
 
 /**
  * @swagger
+ * /api/diaries/search:
+ *   get:
+ *     summary: 模糊搜索日记
+ *     description: 按关键词、标签、心情、日期范围搜索日记
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: 搜索关键词（标题或内容）
+ *       - in: query
+ *         name: tag
+ *         schema:
+ *           type: string
+ *         description: 标签筛选
+ *       - in: query
+ *         name: mood
+ *         schema:
+ *           type: string
+ *         description: 心情筛选
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: 开始日期
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: 结束日期
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: per_page
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: 搜索成功
+ */
+router.get("/diaries/search", auth, async (ctx) => {
+  try {
+    const user = ctx.state.user;
+    const { q, tag, mood, start_date, end_date, page = 1, per_page = 10 } = ctx.query;
+
+    const query = { user_id: user._id, status: 1 };
+
+    if (q) {
+      query.$or = [
+        { title: { $regex: q, $options: "i" } },
+        { content: { $regex: q, $options: "i" } },
+      ];
+    }
+    if (tag) query.tags = tag;
+    if (mood) query.mood = mood;
+    if (start_date || end_date) {
+      query.diary_date = {};
+      if (start_date) query.diary_date.$gte = new Date(start_date);
+      if (end_date) query.diary_date.$lte = new Date(end_date + "T23:59:59");
+    }
+
+    const total = await Diary.countDocuments(query);
+    const diaries = await Diary.find(query)
+      .sort({ diary_date: -1 })
+      .skip((page - 1) * per_page)
+      .limit(parseInt(per_page))
+      .lean();
+
+    ctx.body = {
+      success: true,
+      data: diaries.map((d) => ({ ...d, id: d._id })),
+      pagination: {
+        total,
+        page: parseInt(page),
+        per_page: parseInt(per_page),
+        total_pages: Math.ceil(total / per_page),
+      },
+    };
+  } catch (error) {
+    console.error("[搜索日记错误]:", error);
+    ctx.status = 500;
+    ctx.body = { success: false, message: "搜索日记失败：" + error.message };
+  }
+});
+
+/**
+ * @swagger
+ * /api/diaries/stats:
+ *   get:
+ *     summary: 获取用户日记统计数据
+ *     description: 统计用户日记的标签、心情、日期分布等数据
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: start_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: end_date
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: 获取成功
+ */
+router.get("/diaries/stats", auth, async (ctx) => {
+  try {
+    const user = ctx.state.user;
+    const { start_date, end_date } = ctx.query;
+
+    const baseQuery = { user_id: user._id, status: 1 };
+    if (start_date || end_date) {
+      baseQuery.diary_date = {};
+      if (start_date) baseQuery.diary_date.$gte = new Date(start_date);
+      if (end_date) baseQuery.diary_date.$lte = new Date(end_date + "T23:59:59");
+    }
+
+    const diaries = await Diary.find(baseQuery).lean();
+    const total = diaries.length;
+    const totalWords = diaries.reduce((sum, d) => sum + (d.word_count || 0), 0);
+
+    // 标签统计
+    const tagCount = {};
+    diaries.forEach((d) => {
+      (d.tags || []).forEach((t) => {
+        tagCount[t] = (tagCount[t] || 0) + 1;
+      });
+    });
+
+    // 心情统计
+    const moodCount = {};
+    diaries.forEach((d) => {
+      if (d.mood) moodCount[d.mood] = (moodCount[d.mood] || 0) + 1;
+    });
+
+    // 按日期统计（每天日记数）
+    const dateCount = {};
+    diaries.forEach((d) => {
+      if (d.diary_date) {
+        const key = new Date(d.diary_date).toISOString().split("T")[0];
+        dateCount[key] = (dateCount[key] || 0) + 1;
+      }
+    });
+
+    // 按月统计
+    const monthCount = {};
+    diaries.forEach((d) => {
+      if (d.diary_date) {
+        const key = new Date(d.diary_date).toISOString().slice(0, 7);
+        monthCount[key] = (monthCount[key] || 0) + 1;
+      }
+    });
+
+    ctx.body = {
+      success: true,
+      data: {
+        total,
+        total_words: totalWords,
+        avg_words: total > 0 ? Math.round(totalWords / total) : 0,
+        tags: Object.entries(tagCount)
+          .sort((a, b) => b[1] - a[1])
+          .map(([tag, count]) => ({ tag, count })),
+        moods: Object.entries(moodCount)
+          .sort((a, b) => b[1] - a[1])
+          .map(([mood, count]) => ({ mood, count })),
+        daily: Object.entries(dateCount)
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([date, count]) => ({ date, count })),
+        monthly: Object.entries(monthCount)
+          .sort((a, b) => a[0].localeCompare(b[0]))
+          .map(([month, count]) => ({ month, count })),
+      },
+    };
+  } catch (error) {
+    console.error("[获取日记统计错误]:", error);
+    ctx.status = 500;
+    ctx.body = { success: false, message: "获取日记统计失败：" + error.message };
+  }
+});
+
+/**
+ * @swagger
+ * /api/diaries/export:
+ *   get:
+ *     summary: 导出用户日记
+ *     description: 导出当前用户的所有日记，支持 json/csv/txt 格式
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, csv, txt]
+ *           default: json
+ *     responses:
+ *       200:
+ *         description: 导出成功
+ */
+router.get("/diaries/export", auth, async (ctx) => {
+  try {
+    const user = ctx.state.user;
+    const { format = "json" } = ctx.query;
+
+    const diaries = await Diary.find({ user_id: user._id, status: 1 })
+      .sort({ diary_date: -1 })
+      .lean();
+
+    const timestamp = Date.now();
+
+    if (format === "csv") {
+      const lines = ["日期,标题,心情,天气,标签,字数,内容"];
+      diaries.forEach((d) => {
+        const row = [
+          d.diary_date ? new Date(d.diary_date).toISOString().split("T")[0] : "",
+          `"${(d.title || "").replace(/"/g, '""')}"`,
+          d.mood || "",
+          d.weather || "",
+          `"${(d.tags || []).join(",")}"`,
+          d.word_count || 0,
+          `"${(d.content || "").replace(/"/g, '""').replace(/\n/g, " ")}"`,
+        ];
+        lines.push(row.join(","));
+      });
+      ctx.set("Content-Type", "text/csv; charset=utf-8");
+      ctx.set("Content-Disposition", `attachment; filename=diaries_${timestamp}.csv`);
+      ctx.body = "\uFEFF" + lines.join("\n");
+    } else if (format === "txt") {
+      const lines = diaries.map((d) => {
+        const date = d.diary_date ? new Date(d.diary_date).toISOString().split("T")[0] : "";
+        return `【${date}】${d.title}\n心情：${d.mood || "-"}  天气：${d.weather || "-"}\n${d.content}\n${"─".repeat(40)}`;
+      });
+      ctx.set("Content-Type", "text/plain; charset=utf-8");
+      ctx.set("Content-Disposition", `attachment; filename=diaries_${timestamp}.txt`);
+      ctx.body = lines.join("\n\n");
+    } else {
+      ctx.set("Content-Type", "application/json");
+      ctx.set("Content-Disposition", `attachment; filename=diaries_${timestamp}.json`);
+      ctx.body = JSON.stringify(diaries, null, 2);
+    }
+  } catch (error) {
+    console.error("[导出日记错误]:", error);
+    ctx.status = 500;
+    ctx.body = { success: false, message: "导出日记失败：" + error.message };
+  }
+});
+
+/**
+ * @swagger
  * /api/diaries/{id}:
  *   get:
  *     summary: 获取日记详情

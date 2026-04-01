@@ -113,6 +113,67 @@ const stopWords = [
   "嗯",
 ];
 
+// 需要过滤的词汇模式
+const filterPatterns = [
+  /^https?:\/\//i, // URL
+  /^www\./i, // www开头的网址
+  /\.(com|cn|net|org|io|dev|xyz|tk|ml|ga|cf|gq)$/i, // 常见域名后缀
+  /^[a-z]{1,3}$/i, // 太短的英文（1-3个字母）
+  /^[0-9]+$/, // 纯数字
+  /^[0-9]+[a-z]+$/i, // 数字+字母组合
+  /^[a-z]+[0-9]+$/i, // 字母+数字组合
+  /^ngrok$/i, // ngrok
+  /^free$/i, // free
+  /^dev$/i, // dev
+  /^image$/i, // image
+  /^jpg$/i, // jpg
+  /^jpeg$/i, // jpeg
+  /^png$/i, // png
+  /^gif$/i, // gif
+  /^bmp$/i, // bmp
+  /^webp$/i, // webp
+  /^svg$/i, // svg
+  /^mp4$/i, // mp4
+  /^mp3$/i, // mp3
+  /^wav$/i, // wav
+  /^pdf$/i, // pdf
+  /^doc$/i, // doc
+  /^docx$/i, // docx
+  /^xls$/i, // xls
+  /^xlsx$/i, // xlsx
+  /^ppt$/i, // ppt
+  /^pptx$/i, // pptx
+  /^zip$/i, // zip
+  /^rar$/i, // rar
+  /^tar$/i, // tar
+  /^gz$/i, // gz
+  /^7z$/i, // 7z
+];
+
+// 检查词汇是否需要过滤
+const shouldFilterWord = (word) => {
+  const lowerWord = word.toLowerCase();
+  
+  // 检查是否匹配过滤模式
+  for (const pattern of filterPatterns) {
+    if (pattern.test(word)) {
+      return true;
+    }
+  }
+  
+  // 检查是否是停用词
+  if (stopWords.includes(word) || stopWords.includes(lowerWord)) {
+    return true;
+  }
+  
+  // 检查是否包含特殊字符
+  if (/[!@#$%^&*()_+=\[\]{};:'"\\|,.<>/?`~]/.test(word)) {
+    return true;
+  }
+  
+  return false;
+};
+
 class DiaryAnalyzer {
   // 简单情感分析
   static analyzeSentiment(text) {
@@ -165,17 +226,25 @@ class DiaryAnalyzer {
       return [];
     }
 
-    // 移除标点符号
-    const cleanText = text.replace(/[^\p{L}\s]/gu, " ");
+    // 先移除URL和邮箱
+    let cleanText = text
+      .replace(/https?:\/\/[^\s]+/g, " ") // 移除http/https链接
+      .replace(/www\.[^\s]+/g, " ") // 移除www开头的链接
+      .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, " "); // 移除邮箱
+
+    // 只保留中文字符、空格和常见标点
+    cleanText = cleanText.replace(/[^\u4e00-\u9fa5\s，。！？、；：""''（）【】]/g, " ");
 
     // 简单分词（按空格和常见标点）
     const words = cleanText.split(/\s+/).filter((word) => word.length >= 2);
 
-    // 统计词频
+    // 统计词频 - 只保留中文字符
     const wordCount = {};
     words.forEach((word) => {
-      if (!stopWords.includes(word)) {
-        wordCount[word] = (wordCount[word] || 0) + 1;
+      const trimmedWord = word.trim();
+      // 只保留包含中文字符的词
+      if (trimmedWord && /[\u4e00-\u9fa5]/.test(trimmedWord) && !shouldFilterWord(trimmedWord)) {
+        wordCount[trimmedWord] = (wordCount[trimmedWord] || 0) + 1;
       }
     });
 
