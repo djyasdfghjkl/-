@@ -197,7 +197,7 @@ adminRouter.post(
  *       404:
  *         description: 兑换码不存在或已失效
  */
-router.post("/api/redeem/use", auth, async (ctx) => {
+router.post("/redeem/use", auth, async (ctx) => {
   try {
     const user = ctx.state.user;
     const { code } = ctx.request.body;
@@ -387,22 +387,75 @@ adminRouter.get(
   role(["admin", "superadmin"]),
   async (ctx) => {
     try {
-      const { type, isUsed } = ctx.query;
+      const { type, isUsed, page = 1, page_size = 50 } = ctx.query;
       const query = {};
 
       if (type) query.type = type;
       if (isUsed !== undefined) query.isUsed = isUsed === "true";
 
+      const typeLabels = {
+        vip: "VIP会员",
+        svip: "SVIP会员",
+        balance: "余额",
+        transfer_percent: "转账比例",
+        special_medal: "特殊勋章",
+        points: "积分",
+        level: "等级",
+      };
+
+      const total = await RedeemCode.countDocuments(query);
       const codes = await RedeemCode.find(query)
-        .populate("usedBy", "username email")
-        .populate("createdBy", "username email")
-        .populate("usedUsers", "username email")
+        .populate("usedBy", "username nickname email")
+        .populate("createdBy", "username nickname email")
         .sort({ createdAt: -1 })
-        .limit(100);
+        .skip((page - 1) * page_size)
+        .limit(parseInt(page_size));
+
+      const now = new Date();
+      const items = codes.map((c) => ({
+        id: c._id,
+        code: c.code,
+        type: c.type,
+        type_label: typeLabels[c.type] || c.type,
+        value: c.value,
+        value_label: ["vip", "svip", "level"].includes(c.type)
+          ? `${c.value} 天`
+          : c.type === "balance"
+          ? `¥${c.value}`
+          : c.type === "transfer_percent"
+          ? `${c.value}%`
+          : `${c.value}`,
+        description: c.description || "",
+        max_uses: c.maxUses,
+        current_uses: c.currentUses || 0,
+        is_used: c.isUsed,
+        is_expired: now > c.expiresAt,
+        status:
+          now > c.expiresAt
+            ? "已过期"
+            : c.currentUses >= c.maxUses
+            ? "已用完"
+            : "可用",
+        expires_at: c.expiresAt,
+        created_at: c.createdAt,
+        created_by: c.createdBy
+          ? { id: c.createdBy._id, username: c.createdBy.username }
+          : null,
+        used_by: c.usedBy
+          ? { id: c.usedBy._id, username: c.usedBy.username }
+          : null,
+        used_at: c.usedAt,
+        medal_id: c.medalId || null,
+      }));
 
       ctx.body = {
         success: true,
-        data: codes,
+        data: {
+          total,
+          page: parseInt(page),
+          page_size: parseInt(page_size),
+          items,
+        },
       };
     } catch (error) {
       ctx.status = 500;
