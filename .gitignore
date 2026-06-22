@@ -1,8 +1,6 @@
 # 依赖包
 node_modules/
 
-# 环境变量文件
-.env
 
 # 日志文件
 logs/
