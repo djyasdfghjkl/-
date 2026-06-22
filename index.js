@@ -314,7 +314,7 @@ module.exports = app;
 if (require.main === module) {
   // 启动服务器（自动递增端口）
   const startPort = parseInt(process.env.PORT) || 3000;
-  console.log("准备启动服务器...");
+  console.log("Y准备启动服务器...");
   console.log(`尝试在端口 ${startPort} 启动服务器...`);
   startServerWithAutoPort(app, startPort);
 }
