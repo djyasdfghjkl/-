@@ -8,45 +8,116 @@ const UserTopicSentiment = require("../models/UserTopicSentiment");
 const DiaryAnalyzer = require("../utils/diaryAnalyzer");
 const CaringMessageGenerator = require("../utils/caringMessages");
 
+const buildMoodDistribution = (diaries = []) => {
+  const moodCount = {};
+  diaries.forEach((diary) => {
+    if (!diary.mood) return;
+    moodCount[diary.mood] = (moodCount[diary.mood] || 0) + 1;
+  });
+
+  return Object.entries(moodCount)
+    .sort((a, b) => b[1] - a[1])
+    .map(([mood, count]) => ({ mood, count }));
+};
+
+const buildWritingTimes = (diaries = []) => {
+  const writingTimes = {
+    morning: 0,
+    afternoon: 0,
+    evening: 0,
+    night: 0,
+  };
+
+  diaries.forEach((diary) => {
+    if (!diary.createdAt) return;
+    const hour = new Date(diary.createdAt).getHours();
+    if (hour >= 6 && hour < 12) writingTimes.morning += 1;
+    else if (hour >= 12 && hour < 18) writingTimes.afternoon += 1;
+    else if (hour >= 18 && hour < 24) writingTimes.evening += 1;
+    else writingTimes.night += 1;
+  });
+
+  return writingTimes;
+};
+
+const buildTopicDistributionFromTags = (diaries = [], limit = 10) => {
+  const tagCount = {};
+  diaries.forEach((diary) => {
+    (diary.tags || []).forEach((tag) => {
+      if (!tag) return;
+      tagCount[tag] = (tagCount[tag] || 0) + 1;
+    });
+  });
+
+  return Object.entries(tagCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([topic, count]) => ({ topic, count }));
+};
+
+const buildDiaryStreak = (diaries = []) => {
+  const dateSet = new Set(
+    diaries
+      .filter((diary) => diary.diary_date)
+      .map((diary) => new Date(diary.diary_date).toISOString().split("T")[0]),
+  );
+  let streak = 0;
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+
+  while (dateSet.has(cursor.toISOString().split("T")[0])) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+};
+
 // 分析功能逻辑函数
 const AnalysisHandlers = {
   async getOverview(user) {
+    const diaries = await Diary.find({ user_id: user._id, status: 1 }).lean();
+    const totalDiaries = diaries.length;
+    const totalWords = diaries.reduce(
+      (sum, diary) => sum + (diary.word_count || String(diary.content || "").length || 0),
+      0,
+    );
+    const writingTimes = buildWritingTimes(diaries);
+    const moodDistribution = buildMoodDistribution(diaries);
+    const diaryStreak = buildDiaryStreak(diaries);
+
     // 获取用户所有日记分析
     const analyses = await DiaryAnalysis.find({ user_id: user._id });
 
     if (analyses.length === 0) {
       const caringData = await CaringMessageGenerator.generate(user._id);
       return {
-        total_diaries: 0,
-        total_words: 0,
+        total_diaries: totalDiaries,
+        total_words: totalWords,
         avg_sentiment: 0,
         positive_ratio: 0,
         neutral_ratio: 0,
         negative_ratio: 0,
-        top_topics: [],
+        top_topics: buildTopicDistributionFromTags(diaries),
         top_keywords: [],
-        writing_times: {
-          morning: 0,
-          afternoon: 0,
-          evening: 0,
-          night: 0,
-        },
+        mood_distribution: moodDistribution,
+        dominant_mood: moodDistribution[0]?.mood || "",
+        writing_times: writingTimes,
         caring_message: caringData.caring_message,
         streak_tips: caringData.streak_tips,
         topic_tip: caringData.topic_tip,
-        streak: caringData.streak,
+        streak: diaryStreak || caringData.streak || 0,
       };
     }
 
     // 计算统计数据
-    const totalDiaries = analyses.length;
-    const totalWords = analyses.reduce(
-      (sum, a) => sum + (a.word_count || 0),
-      0,
-    );
+    const analyzedCount = analyses.length;
+    const realTotalDiaries = totalDiaries || analyzedCount;
+    const realTotalWords =
+      totalWords || analyses.reduce((sum, analysis) => sum + (analysis.word_count || 0), 0);
     const avgSentiment =
       analyses.reduce((sum, a) => sum + (a.sentiment_score || 0), 0) /
-      totalDiaries;
+      analyzedCount;
 
     // 统计情感分布
     let positiveCount = 0,
@@ -70,35 +141,16 @@ const AnalysisHandlers = {
       });
     });
 
-    // 获取写作时间分布（需要从日记表获取）
-    const diaries = await Diary.find({ user_id: user._id, status: 1 });
-    const writingTimes = {
-      morning: 0, // 6-12
-      afternoon: 0, // 12-18
-      evening: 0, // 18-24
-      night: 0, // 0-6
-    };
-
-    diaries.forEach((diary) => {
-      if (diary.createdAt) {
-        const hour = new Date(diary.createdAt).getHours();
-        if (hour >= 6 && hour < 12) writingTimes.morning++;
-        else if (hour >= 12 && hour < 18) writingTimes.afternoon++;
-        else if (hour >= 18 && hour < 24) writingTimes.evening++;
-        else writingTimes.night++;
-      }
-    });
-
     // 生成关怀语录
     const caringData = await CaringMessageGenerator.generate(user._id);
 
     return {
-      total_diaries: totalDiaries,
-      total_words: totalWords,
+      total_diaries: realTotalDiaries,
+      total_words: realTotalWords,
       avg_sentiment: parseFloat(avgSentiment.toFixed(2)),
-      positive_ratio: parseFloat((positiveCount / totalDiaries).toFixed(2)),
-      neutral_ratio: parseFloat((neutralCount / totalDiaries).toFixed(2)),
-      negative_ratio: parseFloat((negativeCount / totalDiaries).toFixed(2)),
+      positive_ratio: parseFloat((positiveCount / analyzedCount).toFixed(2)),
+      neutral_ratio: parseFloat((neutralCount / analyzedCount).toFixed(2)),
+      negative_ratio: parseFloat((negativeCount / analyzedCount).toFixed(2)),
       top_topics: Object.entries(topicCount)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 10)
@@ -107,11 +159,13 @@ const AnalysisHandlers = {
         .sort((a, b) => b[1] - a[1])
         .slice(0, 20)
         .map(([word, count]) => ({ word, count })),
+      mood_distribution: moodDistribution,
+      dominant_mood: moodDistribution[0]?.mood || "",
       writing_times: writingTimes,
       caring_message: caringData.caring_message,
       streak_tips: caringData.streak_tips,
       topic_tip: caringData.topic_tip,
-      streak: caringData.streak,
+      streak: diaryStreak || caringData.streak || 0,
     };
   },
 
@@ -849,9 +903,14 @@ router.post("/analysis/tag", auth, async (ctx) => {
 router.post("/analysis/caring-message/refresh", auth, async (ctx) => {
   try {
     const user = ctx.state.user;
-    const { sentiment } = ctx.request.body;
+    const { sentiment, moods = [], tags = [] } = ctx.request.body;
 
-    const newMessage = CaringMessageGenerator.refresh(user._id, sentiment);
+    const newMessage = await CaringMessageGenerator.refresh(
+      user._id,
+      sentiment,
+      moods,
+      tags,
+    );
 
     ctx.body = {
       success: true,

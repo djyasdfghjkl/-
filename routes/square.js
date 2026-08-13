@@ -7,6 +7,7 @@ const Follow = require("../models/Follow");
 const Like = require("../models/Like");
 const Comment = require("../models/Comment");
 const CommentLike = require("../models/CommentLike");
+const UserBlock = require("../models/UserBlock");
 
 const router = new Router();
 
@@ -1024,6 +1025,115 @@ router.get("/square/detail/:diary_id", auth, async (ctx) => {
     ctx.body = {
       success: false,
       message: "获取广场内容详情失败：" + error.message,
+    };
+  }
+});
+
+router.post("/square/share", auth, async (ctx) => {
+  try {
+    const { diary_id } = ctx.request.body || {};
+
+    if (!diary_id) {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        message: "缺少日记ID",
+      };
+      return;
+    }
+
+    const diary = await Diary.findOne({
+      _id: diary_id,
+      is_public: true,
+      status: 1,
+    });
+
+    if (!diary) {
+      ctx.status = 404;
+      ctx.body = {
+        success: false,
+        message: "广场日记不存在",
+      };
+      return;
+    }
+
+    diary.share_count = (diary.share_count || 0) + 1;
+    await diary.save();
+
+    ctx.body = {
+      success: true,
+      message: "分享计数成功",
+      data: {
+        id: diary._id,
+        share_count: diary.share_count,
+      },
+    };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: "分享失败：" + error.message,
+    };
+  }
+});
+
+router.post("/square/block", auth, async (ctx) => {
+  try {
+    const blockerId = ctx.state.user._id;
+    const { user_id, reason = "广场内容不感兴趣" } = ctx.request.body || {};
+
+    if (!user_id) {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        message: "缺少用户ID",
+      };
+      return;
+    }
+
+    if (String(user_id) === String(blockerId)) {
+      ctx.status = 400;
+      ctx.body = {
+        success: false,
+        message: "不能拉黑自己",
+      };
+      return;
+    }
+
+    const targetUser = await User.findById(user_id);
+    if (!targetUser) {
+      ctx.status = 404;
+      ctx.body = {
+        success: false,
+        message: "用户不存在",
+      };
+      return;
+    }
+
+    const existing = await UserBlock.findOne({ blockerId, blockedUserId: user_id });
+    if (existing) {
+      ctx.body = {
+        success: true,
+        message: "该用户已在黑名单中",
+      };
+      return;
+    }
+
+    await UserBlock.create({
+      blockerId,
+      blockedUserId: user_id,
+      reason: String(reason || "").trim(),
+    });
+
+    ctx.body = {
+      success: true,
+      message: "已加入黑名单",
+    };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: "拉黑失败：" + error.message,
     };
   }
 });

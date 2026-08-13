@@ -1,0 +1,378 @@
+正在尝试连接 MongoDB...
+wx66356def4edf39e1 process.env.WECHAT_APP_ID
+正在尝试连接 MySQL...
+准备启动服务器...
+尝试在端口 3005 启动服务器...
+Server running on http://localhost:3005
+API docs at http://localhost:3005/api-docs
+MongoDB connected
+服务器将继续启动，即使 MySQL 连接失败
+超级管理员账号已存在
+开始初始化默认心情...
+系统心情已存在，跳过初始化
+开始初始化默认表情资源...
+默认表情资源初始化完成
+[请求] POST /api/users/login { email: '15574356798@qq.com', password: '19223073501' }
+[登录请求] { email: '15574356798@qq.com', password: '19223073501' }
+[登录成功] 用户: djy, 邮箱: 15574356798@qq.com, 角色: 4
+[登录成功] Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhN2Q0OWM0MDczNWJjN2JiOGM3YWIxNSIsImlhdCI6MTc4NjYwNjY3MSwiZXhwIjoxNzg3MjExNDcxfQ.htudfVrYAooeMKHviOOb0ryhSsowugnWlK0amlDZ6FY
+[请求] GET /api/admin/emojis {}
+[请求] GET /api/emojis/packs?scene=mood {}
+[请求] POST /api/users/login { email: '15574356798@qq.com', password: '19223073501' }
+[登录请求] { email: '15574356798@qq.com', password: '19223073501' }
+[登录成功] 用户: djy, 邮箱: 15574356798@qq.com, 角色: 4
+[登录成功] Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhN2Q0OWM0MDczNWJjN2JiOGM3YWIxNSIsImlhdCI6MTc4NjYwNjcyOCwiZXhwIjoxNzg3MjExNTI4fQ.qYHMbOsd5iQo9WhJvGgjWRQ0CV7aHZXnpziwIKwvOsM
+[请求] GET /api/admin/emojis {}
+[请求] GET /api/emojis/packs?scene=mood {}
+[请求] GET /api/admin/emojis {}
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[获取日记列表请求] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取日记列表成功] 共 0 篇日记
+[请求] GET /%F0%9F%98%8A {}
+[请求] POST /api/files/upload {}
+[请求] PUT /api/admin/emojis/emoji-happy-bloom {
+  name: '开心',
+  description: '明亮、松弛、适合记录今天的小高光。',
+  resourceType: 'lottie',
+  resourceValue: 'http://localhost:3005/1786608517223_n0zieq.json',
+  previewText: '😊',
+  categoryCode: 'mood-picks',
+  scenes: [ 'mood', 'editor' ],
+  sortOrder: 120,
+  source: 'upload',
+  tags: '开心,轻松,日常',
+  enabled: true
+}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/emoji-home-wave {}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/editor-sparkles {}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/editor-clover-luck {}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/editor-rainbow-note {}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/emoji-calm-moon {}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/emoji-message-glow {}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/emoji-personal-spark {}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/emoji-app-pulse {}
+[请求] GET /api/admin/emojis {}
+[请求] DELETE /api/admin/emojis/emoji-morphing-mood {}
+[请求] GET /api/admin/emojis {}
+[请求] POST /api/files/upload {}
+[请求] POST /api/admin/emojis {
+  name: '哭泣',
+  description: '',
+  resourceType: 'lottie',
+  resourceValue: 'http://localhost:3005/1786608811163_jr9r6b.json',
+  previewText: '',
+  categoryCode: 'mood-picks',
+  scenes: [ 'mood', 'editor' ],
+  sortOrder: 0,
+  source: 'upload',
+  tags: '',
+  enabled: true
+}
+[请求] GET /api/admin/emojis {}
+[请求] POST /api/files/upload {}
+[请求] POST /api/admin/emojis {
+  name: '无语',
+  description: '',
+  resourceType: 'lottie',
+  resourceValue: 'http://localhost:3005/1786608843181_7mhn2e.json',
+  previewText: '',
+  categoryCode: 'mood-picks',
+  scenes: [ 'mood', 'editor' ],
+  sortOrder: 0,
+  source: 'upload',
+  tags: '',
+  enabled: true
+}
+[请求] GET /api/admin/emojis {}
+[请求] GET / {}
+[请求] GET /api/test {}
+[请求] GET /swagger.json {}
+[请求] POST /api/diaries/import {}
+[请求] GET /api/diaries/export {}
+正在尝试连接 MongoDB...
+wx66356def4edf39e1 process.env.WECHAT_APP_ID
+正在尝试连接 MySQL...
+准备启动服务器...
+尝试在端口 3005 启动服务器...
+Server running on http://localhost:3005
+API docs at http://localhost:3005/api-docs
+服务器将继续启动，即使 MySQL 连接失败
+MongoDB connected
+超级管理员账号已存在
+开始初始化默认心情...
+系统心情已存在，跳过初始化
+开始初始化默认表情资源...
+默认表情资源初始化完成
+[请求] POST /api/diaries/import {}
+[请求] GET / {}
+[请求] GET /api/test {}
+[请求] POST /api/diaries/import {}
+[请求] POST /api/diaries/import {}
+[请求] POST /api/diaries/import {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/emojis/packs?scene=mood {}
+[请求] POST /api/user/emojis/usage { emojiId: 'emoji-happy-bloom' }
+[请求] POST /api/files/upload {}
+[请求] POST /api/user/emojis/usage { emojiId: 'emoji-curious-wow' }
+[请求] POST /api/user/emojis/usage { emojiId: 'emoji-sunshine-smile' }
+[请求] POST /api/user/emojis/usage { emojiId: 'emoji-happy-bloom' }
+[请求] GET /api/emojis/packs?scene=editor {}
+[请求] POST /api/files/upload {}
+[请求] POST /api/diaries {
+  title: '哈哈哈',
+  content: '<p>你好<img src="http://localhost:3005/1786613646341_6eqe9t.png" alt="image">世界</p><p><br></p>',
+  diary_date: '2026-08-13',
+  mood: '开心',
+  mood_detail: {
+    emoji_id: 'emoji-happy-bloom',
+    label: '开心',
+    resource_type: 'emoji',
+    resource_value: '😊',
+    preview_text: '😊',
+    preview_url: '😊',
+    thumbnail_url: ''
+  },
+  signature: '111',
+  location: '',
+  tags: [ '想法' ],
+  cover: 'http://localhost:3005/1786613565107_str8w4.png',
+  images: [ 'http://localhost:3005/1786613646341_6eqe9t.png' ]
+}
+[创建日记请求] {
+  title: '哈哈哈',
+  content: '<p>你好<img src="http://localhost:3005/1786613646341_6eqe9t.png" alt="image">世界</p><p><br></p>',
+  diary_date: '2026-08-13',
+  mood: '开心',
+  mood_detail: {
+    emoji_id: 'emoji-happy-bloom',
+    label: '开心',
+    resource_type: 'emoji',
+    resource_value: '😊',
+    preview_text: '😊',
+    preview_url: '😊',
+    thumbnail_url: ''
+  },
+  signature: '111',
+  location: '',
+  tags: [ '想法' ],
+  cover: 'http://localhost:3005/1786613565107_str8w4.png',
+  images: [ 'http://localhost:3005/1786613646341_6eqe9t.png' ]
+}
+[创建日记成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 标题: 哈哈哈
+[日记分析] 完成分析: diary_id=6a7d8f95d9587b0a60ee4116, sentiment=positive
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[获取日记列表请求] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取日记列表成功] 共 1 篇日记
+[日记示例数据] {
+  "_id": "6a7d8f95d9587b0a60ee4116",
+  "images": [
+    "http://localhost:3005/1786613646341_6eqe9t.png"
+  ],
+  "tags": [
+    "想法"
+  ],
+  "is_public": false,
+  "is_top": false,
+  "status": 1,
+  "word_count": 92,
+  "view_count": 0,
+  "like_count": 0,
+  "comment_count": 0,
+  "score": 0,
+  "share_count": 0,
+  "user_id": "6a7d4baf0735bc7bb8c7ab64",
+  "title": "哈哈哈",
+  "content": "<p>你好<img src=\"http://localhost:3005/1786613646341_6eqe9t.png\" alt=\"image\">世界</p><p><br></p>",
+  "diary_date": "2026-08-13T00:00:00.000Z",
+  "mood": "开心",
+  "mood_detail": {
+    "emoji_id": "emoji-happy-bloom",
+    "label": "开心",
+    "resource_type": "emoji",
+    "resource_value": "😊",
+    "preview_text": "😊",
+    "preview_url": "😊",
+    "thumbnail_url": ""
+  },
+  "signature": "111",
+  "location": "",
+  "cover": "http://localhost:3005/1786613565107_str8w4.png",
+  "createdAt": "2026-08-13T09:34:13.969Z",
+  "updatedAt": "2026-08-13T09:34:13.969Z",
+  "__v": 0,
+  "id": "6a7d8f95d9587b0a60ee4116"
+}
+[请求] POST /api/diaries/6a7d8f95d9587b0a60ee4116/share {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[获取日记列表请求] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取日记列表成功] 共 1 篇日记
+[日记示例数据] {
+  "_id": "6a7d8f95d9587b0a60ee4116",
+  "images": [
+    "http://localhost:3005/1786613646341_6eqe9t.png"
+  ],
+  "tags": [
+    "想法"
+  ],
+  "is_public": false,
+  "is_top": false,
+  "status": 1,
+  "word_count": 92,
+  "view_count": 0,
+  "like_count": 0,
+  "comment_count": 0,
+  "score": 0,
+  "share_count": 1,
+  "user_id": "6a7d4baf0735bc7bb8c7ab64",
+  "title": "哈哈哈",
+  "content": "<p>你好<img src=\"http://localhost:3005/1786613646341_6eqe9t.png\" alt=\"image\">世界</p><p><br></p>",
+  "diary_date": "2026-08-13T00:00:00.000Z",
+  "mood": "开心",
+  "mood_detail": {
+    "emoji_id": "emoji-happy-bloom",
+    "label": "开心",
+    "resource_type": "emoji",
+    "resource_value": "😊",
+    "preview_text": "😊",
+    "preview_url": "😊",
+    "thumbnail_url": ""
+  },
+  "signature": "111",
+  "location": "",
+  "cover": "http://localhost:3005/1786613565107_str8w4.png",
+  "createdAt": "2026-08-13T09:34:13.969Z",
+  "updatedAt": "2026-08-13T09:34:22.826Z",
+  "__v": 0,
+  "id": "6a7d8f95d9587b0a60ee4116"
+}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[获取日记列表请求] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取日记列表成功] 共 1 篇日记
+[日记示例数据] {
+  "_id": "6a7d8f95d9587b0a60ee4116",
+  "images": [
+    "http://localhost:3005/1786613646341_6eqe9t.png"
+  ],
+  "tags": [
+    "想法"
+  ],
+  "is_public": false,
+  "is_top": false,
+  "status": 1,
+  "word_count": 92,
+  "view_count": 0,
+  "like_count": 0,
+  "comment_count": 0,
+  "score": 0,
+  "share_count": 1,
+  "user_id": "6a7d4baf0735bc7bb8c7ab64",
+  "title": "哈哈哈",
+  "content": "<p>你好<img src=\"http://localhost:3005/1786613646341_6eqe9t.png\" alt=\"image\">世界</p><p><br></p>",
+  "diary_date": "2026-08-13T00:00:00.000Z",
+  "mood": "开心",
+  "mood_detail": {
+    "emoji_id": "emoji-happy-bloom",
+    "label": "开心",
+    "resource_type": "emoji",
+    "resource_value": "😊",
+    "preview_text": "😊",
+    "preview_url": "😊",
+    "thumbnail_url": ""
+  },
+  "signature": "111",
+  "location": "",
+  "cover": "http://localhost:3005/1786613565107_str8w4.png",
+  "createdAt": "2026-08-13T09:34:13.969Z",
+  "updatedAt": "2026-08-13T09:34:22.826Z",
+  "__v": 0,
+  "id": "6a7d8f95d9587b0a60ee4116"
+}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/analysis/overview {}
+[请求] GET /api/analysis/sentiment-trend?type=day&range=30 {}
+[请求] GET /api/analysis/wordcloud?limit=12 {}
+[请求] GET /api/user/analysis/writing-habit {}
+[请求] GET /api/analysis/topic-sentiment {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/diaries/export?format=json {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/medals/user {}
+[请求] GET /api/medals {}
+[请求] GET /api/medals/6a7d49c40735bc7bb8c7ab26 {}
+[请求] GET /api/medals/user {}
+[请求] GET /api/medals {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/blocks {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[请求] GET /api/diaries/stats {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/diaries/stats {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/diaries/stats {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/diaries/stats {}
+[请求] GET /api/test {}
+[请求] GET /api/test {}
+[请求] GET /api/medals/user {}
+[请求] GET /api/medals {}

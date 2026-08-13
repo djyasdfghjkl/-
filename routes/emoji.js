@@ -1,457 +1,512 @@
 const Router = require("koa-router");
-const router = new Router();
-const adminRouter = new Router();
-const uuid = require("uuid");
-const uuidv4 = uuid.v4;
 const Emoji = require("../models/Emoji");
 const EmojiCategory = require("../models/EmojiCategory");
 const UserEmojiFavorite = require("../models/UserEmojiFavorite");
 const UserEmojiUsage = require("../models/UserEmojiUsage");
-const UserCustomEmoji = require("../models/UserCustomEmoji");
 const auth = require("../middleware/auth");
 const optionalAuth = require("../middleware/optionalAuth");
 const { role } = require("../middleware/role");
+const { normalizeEmojiDoc, sanitizeEmojiPayload } = require("../utils/emojiManager");
 
-// ==================== 基础管理接口 ====================
+const router = new Router();
+const adminRouter = new Router();
 
-router.get("/emoji/categories", async (ctx) => {
+function buildSceneQuery(scene) {
+  if (!scene) return {};
+  return { scenes: scene };
+}
+
+async function findCategoryByPayload(payload = {}) {
+  if (payload.categoryId) {
+    const direct = await EmojiCategory.findById(payload.categoryId);
+    if (direct) return direct;
+  }
+  if (payload.categoryCode) {
+    return EmojiCategory.findOne({ code: payload.categoryCode });
+  }
+  return null;
+}
+
+async function buildItems(query = {}, options = {}) {
+  const page = Math.max(1, Number(options.page || 1));
+  const pageSize = Math.max(1, Math.min(200, Number(options.pageSize || 50)));
+  const docs = await Emoji.find(query)
+    .populate("category_id")
+    .sort({ sort_order: -1, use_count: -1, created_at: -1 })
+    .skip((page - 1) * pageSize)
+    .limit(pageSize);
+  const total = await Emoji.countDocuments(query);
+  return {
+    total,
+    page,
+    pageSize,
+    items: docs.map(normalizeEmojiDoc),
+  };
+}
+
+router.get(["/emoji/categories", "/emojis/categories"], async (ctx) => {
   try {
-    const categories = await EmojiCategory.find({ is_active: true }).sort({ sort_order: 1 });
+    const { scene } = ctx.query;
+    const query = { is_active: true };
+    if (scene) {
+      query.$or = [{ scene }, { scene: "all" }];
+    }
+    const categories = await EmojiCategory.find(query).sort({ sort_order: 1, created_at: 1 });
     ctx.body = {
       success: true,
-      data: categories
+      data: categories.map((item) => ({
+        id: item._id,
+        code: item.code,
+        name: item.name,
+        description: item.description || "",
+        icon: item.icon || "",
+        scene: item.scene || "all",
+        sortOrder: Number(item.sort_order || 0),
+      })),
     };
   } catch (error) {
-    console.error("[获取分类错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取分类失败" };
+    ctx.body = { success: false, message: `获取表情分类失败: ${error.message}` };
   }
 });
 
 router.get("/emojis", optionalAuth, async (ctx) => {
   try {
-    const { category_id, type, keyword, page = 1, page_size = 20 } = ctx.query;
-    const user = ctx.state.user;
-    
-    const query = { is_official: true, status: 1 };
-    
+    const { keyword = "", scene = "", categoryCode = "", category_id = "", page = 1, page_size = 50 } = ctx.query;
+    const query = { status: 1, is_official: true, ...buildSceneQuery(scene) };
+
     if (category_id) {
       query.category_id = category_id;
     }
-    
-    if (type) {
-      query.type = parseInt(type);
+
+    if (categoryCode) {
+      const category = await EmojiCategory.findOne({ code: categoryCode });
+      if (category) {
+        query.category_id = category._id;
+      }
     }
-    
+
     if (keyword) {
       query.$or = [
         { name: { $regex: keyword, $options: "i" } },
-        { tags: { $in: [new RegExp(keyword, "i")] } }
+        { tags: { $in: [new RegExp(keyword, "i")] } },
+        { description: { $regex: keyword, $options: "i" } },
       ];
     }
-    
-    const total = await Emoji.countDocuments(query);
-    const emojis = await Emoji.find(query)
-      .sort({ use_count: -1, created_at: -1 })
-      .skip((page - 1) * page_size)
-      .limit(parseInt(page_size));
-    
-    let favoriteIds = [];
-    if (user) {
-      const favorites = await UserEmojiFavorite.find({ user_id: user._id });
-      favoriteIds = favorites.map(f => f.emoji_id.toString());
-    }
-    
-    const items = emojis.map(emoji => ({
-      id: emoji.uuid,
-      _id: emoji._id,
-      name: emoji.name,
-      type: emoji.type,
-      url: emoji.url,
-      thumbnail: emoji.thumbnail_url || emoji.url,
-      tags: emoji.tags,
-      is_favorite: favoriteIds.includes(emoji._id.toString()),
-      use_count: emoji.use_count
-    }));
-    
+
     ctx.body = {
       success: true,
-      data: {
-        total,
-        page: parseInt(page),
-        page_size: parseInt(page_size),
-        items
-      }
+      data: await buildItems(query, { page, pageSize: page_size }),
     };
   } catch (error) {
-    console.error("[获取表情包错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取表情包失败" };
+    ctx.body = { success: false, message: `获取表情列表失败: ${error.message}` };
   }
 });
 
-router.get("/emojis/:uuid", async (ctx) => {
+router.get("/emojis/packs", optionalAuth, async (ctx) => {
   try {
-    const { uuid } = ctx.params;
-    const emoji = await Emoji.findOne({ uuid });
-    
-    if (!emoji) {
-      ctx.status = 404;
-      ctx.body = { success: false, message: "表情包不存在" };
-      return;
-    }
-    
+    const scene = String(ctx.query.scene || "mood").trim();
+    const categories = await EmojiCategory.find({
+      is_active: true,
+      $or: [{ scene }, { scene: "all" }],
+    }).sort({ sort_order: 1, created_at: 1 });
+
+    const emojis = await Emoji.find({
+      status: 1,
+      is_official: true,
+      ...buildSceneQuery(scene),
+    })
+      .populate("category_id")
+      .sort({ sort_order: -1, use_count: -1, created_at: -1 });
+
+    const items = emojis.map(normalizeEmojiDoc);
+    const groupMap = new Map();
+    categories.forEach((category) => {
+      groupMap.set(String(category._id), {
+        id: category._id,
+        code: category.code,
+        name: category.name,
+        description: category.description || "",
+        icon: category.icon || "",
+        sortOrder: Number(category.sort_order || 0),
+        items: [],
+      });
+    });
+
+    items.forEach((item) => {
+      const key = String(item.categoryId || "uncategorized");
+      if (!groupMap.has(key)) {
+        groupMap.set(key, {
+          id: item.categoryId || "uncategorized",
+          code: item.categoryCode || "uncategorized",
+          name: item.categoryName || "其他表情",
+          description: "",
+          icon: "✨",
+          sortOrder: 999,
+          items: [],
+        });
+      }
+      groupMap.get(key).items.push(item);
+    });
+
+    const groups = [...groupMap.values()]
+      .filter((group) => group.items.length > 0)
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+
     ctx.body = {
       success: true,
-      data: emoji
+      data: {
+        scene,
+        groups,
+        items,
+      },
     };
   } catch (error) {
-    console.error("[获取表情详情错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取表情详情失败" };
+    ctx.body = { success: false, message: `获取表情包资源失败: ${error.message}` };
   }
 });
 
 router.get("/emojis/trending", async (ctx) => {
   try {
-    const emojis = await Emoji.find({ is_official: true, status: 1 })
-      .sort({ use_count: -1 })
+    const docs = await Emoji.find({ status: 1, is_official: true })
+      .populate("category_id")
+      .sort({ use_count: -1, sort_order: -1, created_at: -1 })
       .limit(20);
-    
     ctx.body = {
       success: true,
-      data: emojis
+      data: docs.map(normalizeEmojiDoc),
     };
   } catch (error) {
-    console.error("[获取热门表情错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取热门表情失败" };
+    ctx.body = { success: false, message: `获取热门表情失败: ${error.message}` };
   }
 });
 
-// ==================== 用户相关接口 ====================
-
-router.get("/user/emojis/favorites", auth, async (ctx) => {
+router.get("/emojis/:uuid", async (ctx) => {
   try {
-    const user = ctx.state.user;
-    const { page = 1, page_size = 20 } = ctx.query;
-    
-    const total = await UserEmojiFavorite.countDocuments({ user_id: user._id });
-    const favorites = await UserEmojiFavorite.find({ user_id: user._id })
-      .sort({ created_at: -1 })
-      .skip((page - 1) * page_size)
-      .limit(parseInt(page_size))
-      .populate("emoji_id");
-    
-    const items = favorites.map(fav => {
-      if (!fav.emoji_id) return null;
-      return {
-        id: fav.emoji_id.uuid,
-        _id: fav.emoji_id._id,
-        name: fav.emoji_id.name,
-        type: fav.emoji_id.type,
-        url: fav.emoji_id.url,
-        thumbnail: fav.emoji_id.thumbnail_url || fav.emoji_id.url,
-        tags: fav.emoji_id.tags,
-        is_favorite: true,
-        use_count: fav.emoji_id.use_count
-      };
-    }).filter(Boolean);
-    
-    ctx.body = {
-      success: true,
-      data: {
-        total,
-        page: parseInt(page),
-        page_size: parseInt(page_size),
-        items
-      }
-    };
-  } catch (error) {
-    console.error("[获取收藏错误]:", error);
-    ctx.status = 500;
-    ctx.body = { success: false, message: "获取收藏失败" };
-  }
-});
-
-router.post("/user/emojis/favorite", auth, async (ctx) => {
-  try {
-    const user = ctx.state.user;
-    const { emoji_uuid } = ctx.request.body;
-    
-    const emoji = await Emoji.findOne({ uuid: emoji_uuid });
+    const emoji = await Emoji.findOne({ uuid: ctx.params.uuid }).populate("category_id");
     if (!emoji) {
       ctx.status = 404;
-      ctx.body = { success: false, message: "表情包不存在" };
+      ctx.body = { success: false, message: "表情资源不存在" };
       return;
     }
-    
-    const existing = await UserEmojiFavorite.findOne({
-      user_id: user._id,
-      emoji_id: emoji._id
-    });
-    
-    let is_favorite;
-    if (existing) {
-      await UserEmojiFavorite.deleteOne({ _id: existing._id });
-      is_favorite = false;
-    } else {
-      await UserEmojiFavorite.create({
-        user_id: user._id,
-        emoji_id: emoji._id
-      });
-      is_favorite = true;
-    }
-    
+
     ctx.body = {
       success: true,
-      data: { is_favorite }
+      data: normalizeEmojiDoc(emoji),
     };
   } catch (error) {
-    console.error("[收藏错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "操作失败" };
+    ctx.body = { success: false, message: `获取表情详情失败: ${error.message}` };
   }
 });
 
 router.post("/user/emojis/usage", auth, async (ctx) => {
   try {
-    const user = ctx.state.user;
-    const { emoji_uuid } = ctx.request.body;
-    
-    const emoji = await Emoji.findOne({ uuid: emoji_uuid });
+    const emojiUuid = String(ctx.request.body.emoji_uuid || ctx.request.body.emojiId || "").trim();
+    const emoji = await Emoji.findOne({ uuid: emojiUuid, status: 1 });
     if (!emoji) {
       ctx.status = 404;
-      ctx.body = { success: false, message: "表情包不存在" };
+      ctx.body = { success: false, message: "表情资源不存在" };
       return;
     }
-    
-    emoji.use_count += 1;
+
+    emoji.use_count = Number(emoji.use_count || 0) + 1;
     await emoji.save();
-    
     await UserEmojiUsage.create({
-      user_id: user._id,
-      emoji_id: emoji._id
+      user_id: ctx.state.user._id,
+      emoji_id: emoji._id,
     });
-    
+
     ctx.body = {
       success: true,
-      message: "使用记录已保存"
+      message: "表情使用记录已保存",
     };
   } catch (error) {
-    console.error("[记录使用错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "记录使用失败" };
+    ctx.body = { success: false, message: `记录表情使用失败: ${error.message}` };
   }
 });
 
 router.get("/user/emojis/recent", auth, async (ctx) => {
   try {
-    const user = ctx.state.user;
-    const { limit = 20 } = ctx.query;
-    
-    const usages = await UserEmojiUsage.aggregate([
-      { $match: { user_id: user._id } },
-      { $sort: { used_at: -1 } },
-      { $group: { _id: "$emoji_id", last_used: { $first: "$used_at" } } },
-      { $limit: parseInt(limit) }
-    ]);
-    
-    const emojiIds = usages.map(u => u._id);
-    const emojis = await Emoji.find({ _id: { $in: emojiIds } });
-    
-    const emojiMap = {};
-    emojis.forEach(e => {
-      emojiMap[e._id.toString()] = e;
+    const limit = Math.max(1, Math.min(50, Number(ctx.query.limit || 20)));
+    const records = await UserEmojiUsage.find({ user_id: ctx.state.user._id })
+      .sort({ used_at: -1 })
+      .limit(limit)
+      .populate({
+        path: "emoji_id",
+        populate: { path: "category_id" },
+      });
+
+    const unique = [];
+    const seen = new Set();
+    records.forEach((record) => {
+      const emoji = record.emoji_id;
+      if (!emoji || seen.has(emoji.uuid)) return;
+      seen.add(emoji.uuid);
+      unique.push(normalizeEmojiDoc(emoji));
     });
-    
-    const items = usages
-      .map(u => {
-        const emoji = emojiMap[u._id.toString()];
-        if (!emoji) return null;
-        return {
-          id: emoji.uuid,
-          _id: emoji._id,
-          name: emoji.name,
-          type: emoji.type,
-          url: emoji.url,
-          thumbnail: emoji.thumbnail_url || emoji.url,
-          tags: emoji.tags,
-          last_used: u.last_used
-        };
-      })
-      .filter(Boolean);
-    
+
     ctx.body = {
       success: true,
-      data: items
+      data: unique,
     };
   } catch (error) {
-    console.error("[获取最近使用错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取最近使用失败" };
+    ctx.body = { success: false, message: `获取最近使用失败: ${error.message}` };
   }
 });
 
-// ==================== 自定义表情包接口 ====================
-
-router.get("/user/emojis/custom", auth, async (ctx) => {
+router.get("/user/emojis/favorites", auth, async (ctx) => {
   try {
-    const user = ctx.state.user;
-    const emojis = await UserCustomEmoji.find({ user_id: user._id }).sort({ created_at: -1 });
-    
+    const favorites = await UserEmojiFavorite.find({ user_id: ctx.state.user._id })
+      .sort({ created_at: -1 })
+      .populate({
+        path: "emoji_id",
+        populate: { path: "category_id" },
+      });
+
     ctx.body = {
       success: true,
-      data: emojis
+      data: favorites
+        .map((item) => (item.emoji_id ? normalizeEmojiDoc(item.emoji_id) : null))
+        .filter(Boolean),
     };
   } catch (error) {
-    console.error("[获取自定义表情错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "获取自定义表情失败" };
+    ctx.body = { success: false, message: `获取收藏失败: ${error.message}` };
   }
 });
 
-router.delete("/user/emojis/custom/:id", auth, async (ctx) => {
+router.post("/user/emojis/favorite", auth, async (ctx) => {
   try {
-    const user = ctx.state.user;
-    const { id } = ctx.params;
-    
-    const result = await UserCustomEmoji.deleteOne({ _id: id, user_id: user._id });
-    
-    if (result.deletedCount === 0) {
+    const emojiUuid = String(ctx.request.body.emoji_uuid || ctx.request.body.emojiId || "").trim();
+    const emoji = await Emoji.findOne({ uuid: emojiUuid, status: 1 });
+    if (!emoji) {
       ctx.status = 404;
-      ctx.body = { success: false, message: "表情不存在" };
+      ctx.body = { success: false, message: "表情资源不存在" };
       return;
     }
-    
-    ctx.body = {
-      success: true,
-      message: "删除成功"
-    };
+
+    const existing = await UserEmojiFavorite.findOne({
+      user_id: ctx.state.user._id,
+      emoji_id: emoji._id,
+    });
+
+    if (existing) {
+      await existing.deleteOne();
+      ctx.body = { success: true, data: { is_favorite: false } };
+      return;
+    }
+
+    await UserEmojiFavorite.create({
+      user_id: ctx.state.user._id,
+      emoji_id: emoji._id,
+    });
+    ctx.body = { success: true, data: { is_favorite: true } };
   } catch (error) {
-    console.error("[删除自定义表情错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "删除失败" };
+    ctx.body = { success: false, message: `收藏表情失败: ${error.message}` };
   }
 });
 
-// ==================== 管理后台接口 ====================
+adminRouter.get("/emojis", auth, role(["admin", "superadmin"]), async (ctx) => {
+  try {
+    const { keyword = "", scene = "", categoryCode = "" } = ctx.query;
+    const query = {};
+    if (scene) {
+      Object.assign(query, buildSceneQuery(scene));
+    }
+    if (keyword) {
+      query.$or = [
+        { name: { $regex: keyword, $options: "i" } },
+        { description: { $regex: keyword, $options: "i" } },
+        { tags: { $in: [new RegExp(keyword, "i")] } },
+      ];
+    }
+    if (categoryCode) {
+      const category = await EmojiCategory.findOne({ code: categoryCode });
+      if (category) {
+        query.category_id = category._id;
+      }
+    }
+
+    const categories = await EmojiCategory.find().sort({ sort_order: 1, created_at: 1 });
+    const docs = await Emoji.find(query)
+      .populate("category_id")
+      .sort({ sort_order: -1, created_at: -1 });
+    const items = docs.map(normalizeEmojiDoc);
+
+    ctx.body = {
+      success: true,
+      data: {
+        categories: categories.map((item) => ({
+          id: item._id,
+          code: item.code,
+          name: item.name,
+          description: item.description || "",
+          icon: item.icon || "",
+          scene: item.scene || "all",
+          sortOrder: Number(item.sort_order || 0),
+        })),
+        items,
+        summary: {
+          total: items.length,
+          enabled: items.filter((item) => item.enabled).length,
+          lottie: items.filter((item) => item.resourceType === "lottie").length,
+          mood: items.filter((item) => item.scenes.includes("mood")).length,
+          editor: items.filter((item) => item.scenes.includes("editor")).length,
+        },
+      },
+    };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = { success: false, message: `获取表情资源管理列表失败: ${error.message}` };
+  }
+});
 
 adminRouter.post("/emojis", auth, role(["admin", "superadmin"]), async (ctx) => {
   try {
-    console.log("[创建表情请求]", ctx.request.body);
-    const { name, description, type, category_id, url, thumbnail_url, tags, width, height, duration } = ctx.request.body;
-    
-    const newUuid = uuidv4();
-    console.log("[创建表情] 生成UUID:", newUuid);
-    
-    const emojiData = {
-      uuid: newUuid,
-      name,
-      description,
-      type: type || 1,
-      category_id,
-      url,
-      thumbnail_url,
-      tags: tags || [],
-      is_official: true,
-      status: 1,
-      width,
-      height,
-      duration
-    };
-    
-    console.log("[创建表情] 准备保存数据:", emojiData);
-    
-    const emoji = await Emoji.create(emojiData);
-    console.log("[创建表情] 保存成功:", emoji._id);
-    
+    const payload = sanitizeEmojiPayload(ctx.request.body || {});
+    if (!payload.name || !payload.resource_value) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "表情名称和资源内容不能为空" };
+      return;
+    }
+
+    const duplicate = await Emoji.findOne({ name: payload.name, status: { $ne: -1 } });
+    if (duplicate) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "表情名称已存在" };
+      return;
+    }
+
+    const category = await findCategoryByPayload(payload);
+    const emoji = await Emoji.create({
+      uuid: payload.uuid,
+      name: payload.name,
+      description: payload.description,
+      type: payload.type,
+      resource_type: payload.resource_type,
+      resource_value: payload.resource_value,
+      category_id: category?._id || null,
+      url: payload.url,
+      thumbnail_url: payload.thumbnail_url,
+      preview_text: payload.preview_text,
+      tags: payload.tags,
+      scenes: payload.scenes,
+      sort_order: payload.sort_order,
+      source: payload.source,
+      is_official: payload.is_official,
+      status: payload.status,
+      width: payload.width,
+      height: payload.height,
+      duration: payload.duration,
+      uploader_id: ctx.state.user._id,
+    });
+
+    const populated = await Emoji.findById(emoji._id).populate("category_id");
     ctx.status = 201;
     ctx.body = {
       success: true,
-      message: "创建成功",
-      data: emoji
+      message: "表情资源创建成功",
+      data: normalizeEmojiDoc(populated),
     };
   } catch (error) {
-    console.error("[创建表情错误]:", error);
-    console.error("[创建表情错误堆栈]:", error.stack);
     ctx.status = 500;
-    ctx.body = { success: false, message: "创建失败: " + error.message };
+    ctx.body = { success: false, message: `创建表情资源失败: ${error.message}` };
   }
 });
 
 adminRouter.put("/emojis/:uuid", auth, role(["admin", "superadmin"]), async (ctx) => {
   try {
-    const { uuid } = ctx.params;
-    const updateData = ctx.request.body;
-    
-    const emoji = await Emoji.findOneAndUpdate(
-      { uuid },
-      updateData,
-      { new: true }
-    );
-    
+    const payload = sanitizeEmojiPayload({ ...ctx.request.body, uuid: ctx.params.uuid });
+    const emoji = await Emoji.findOne({ uuid: ctx.params.uuid });
     if (!emoji) {
       ctx.status = 404;
-      ctx.body = { success: false, message: "表情包不存在" };
+      ctx.body = { success: false, message: "表情资源不存在" };
       return;
     }
-    
+
+    const duplicate = await Emoji.findOne({
+      name: payload.name,
+      _id: { $ne: emoji._id },
+      status: { $ne: -1 },
+    });
+    if (duplicate) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "表情名称已存在" };
+      return;
+    }
+
+    const category = await findCategoryByPayload(payload);
+    Object.assign(emoji, {
+      name: payload.name,
+      description: payload.description,
+      type: payload.type,
+      resource_type: payload.resource_type,
+      resource_value: payload.resource_value,
+      category_id: category?._id || null,
+      url: payload.url,
+      thumbnail_url: payload.thumbnail_url,
+      preview_text: payload.preview_text,
+      tags: payload.tags,
+      scenes: payload.scenes,
+      sort_order: payload.sort_order,
+      source: payload.source,
+      is_official: payload.is_official,
+      status: payload.status,
+      width: payload.width,
+      height: payload.height,
+      duration: payload.duration,
+    });
+    await emoji.save();
+
+    const populated = await Emoji.findById(emoji._id).populate("category_id");
     ctx.body = {
       success: true,
-      message: "更新成功",
-      data: emoji
+      message: "表情资源更新成功",
+      data: normalizeEmojiDoc(populated),
     };
   } catch (error) {
-    console.error("[更新表情错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "更新失败" };
+    ctx.body = { success: false, message: `更新表情资源失败: ${error.message}` };
   }
 });
 
 adminRouter.delete("/emojis/:uuid", auth, role(["admin", "superadmin"]), async (ctx) => {
   try {
-    const { uuid } = ctx.params;
-    
-    const result = await Emoji.deleteOne({ uuid });
-    
-    if (result.deletedCount === 0) {
+    const emoji = await Emoji.findOne({ uuid: ctx.params.uuid });
+    if (!emoji) {
       ctx.status = 404;
-      ctx.body = { success: false, message: "表情包不存在" };
+      ctx.body = { success: false, message: "表情资源不存在" };
       return;
     }
-    
+
+    await emoji.deleteOne();
     ctx.body = {
       success: true,
-      message: "删除成功"
+      message: "表情资源删除成功",
     };
   } catch (error) {
-    console.error("[删除表情错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "删除失败" };
+    ctx.body = { success: false, message: `删除表情资源失败: ${error.message}` };
   }
 });
 
-adminRouter.post("/emoji/categories", auth, role(["admin", "superadmin"]), async (ctx) => {
+adminRouter.get("/emoji/categories", auth, role(["admin", "superadmin"]), async (ctx) => {
   try {
-    const { name, icon, sort_order } = ctx.request.body;
-    
-    const category = await EmojiCategory.create({
-      name,
-      icon,
-      sort_order: sort_order || 0
-    });
-    
-    ctx.status = 201;
+    const categories = await EmojiCategory.find().sort({ sort_order: 1, created_at: 1 });
     ctx.body = {
       success: true,
-      message: "创建成功",
-      data: category
+      data: categories,
     };
   } catch (error) {
-    console.error("[创建分类错误]:", error);
     ctx.status = 500;
-    ctx.body = { success: false, message: "创建失败" };
+    ctx.body = { success: false, message: `获取分类失败: ${error.message}` };
   }
 });
 
@@ -460,5 +515,5 @@ adminRouter.prefix("/api/admin");
 
 module.exports = {
   router,
-  adminRouter
+  adminRouter,
 };

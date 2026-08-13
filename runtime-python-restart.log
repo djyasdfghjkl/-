@@ -1,0 +1,334 @@
+正在尝试连接 MongoDB...
+wx66356def4edf39e1 process.env.WECHAT_APP_ID
+正在尝试连接 MySQL...
+准备启动服务器...
+尝试在端口 3005 启动服务器...
+Server running on http://localhost:3005
+API docs at http://localhost:3005/api-docs
+MongoDB fallback is disabled. Set MONGODB_FALLBACK=true only for explicit local development fallback.
+MySQL connection error: 
+服务器将继续启动，即使 MySQL 连接失败
+[请求] GET /api/test {}
+[请求] GET /api/medals {}
+初始化超级管理员账号失败: Operation `users.findOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+初始化应用失败: MongooseError: Operation `medals.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+认证错误: MongooseError: Operation `users.findOne()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/test {}
+[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/test {}
+[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+正在尝试连接 MongoDB...
+wx66356def4edf39e1 proce[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/test {}
+[请求] GET /api/medals {}
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/test {}
+[请求] GET /api/medals {}
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+[请求] GET /api/medals {}
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+[请求] GET /api/medals {}
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+获取全部勋章失败: MongooseError: Operation `medals.find()` buffering timed out after 10000ms
+    at Timeout.<anonymous> (D:\code\note_project\noteServer\node_modules\mongoose\lib\drivers\node-mongodb-native\collection.js:198:23)
+    at listOnTimeout (node:internal/timers:605:17)
+    at process.processTimers (node:internal/timers:541:7)
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+数据库日志记录失败: Operation `requestlogs.insertOne()` buffering timed out after 10000ms
+正在尝试连接 MongoDB...
+wx66356def4edf39e1 process.env.WECHAT_APP_ID
+正在尝试连接 MySQL...
+准备启动服务器...
+尝试在端口 3005 启动服务器...
+Server running on http://localhost:3005
+API docs at http://localhost:3005/api-docs
+MySQL connection error: 
+服务器将继续启动，即使 MySQL 连接失败
+MongoDB connected
+超级管理员账号已存在
+开始初始化默认心情...
+系统心情已存在，跳过初始化
+开始初始化默认表情资源...
+默认表情资源初始化完成
+[请求] GET /api/test {}
+[请求] GET /api/medals {}
+[请求] GET /api/emojis/packs?scene=mood {}
+[请求] GET /api/medals {}
+[请求] GET /api/emojis/packs?scene=editor {}
+正在尝试连接 MongoDB...
+wx66356def4edf39e1 process.env.WECHAT_APP_ID
+正在尝试连接 MySQL...
+准备启动服务器...
+尝试在端口 3005 启动服务器...
+Server running on http://localhost:3005
+API docs at http://localhost:3005/api-docs
+MySQL connection error: 
+服务器将继续启动，即使 MySQL 连接失败
+MongoDB connected
+超级管理员账号已存在
+开始初始化默认心情...
+系统心情已存在，跳过初始化
+开始初始化默认表情资源...
+默认表情资源初始化完成
+[请求] GET /api/test {}
+[请求] GET /api/medals {}
+[请求] GET /api/emojis/packs?scene=editor {}

@@ -1,110 +1,104 @@
 const Diary = require("../models/Diary");
 const DiaryAnalysis = require("../models/DiaryAnalysis");
+const CaringQuote = require("../models/CaringQuote");
 
-// 关怀语录库
 const caringQuotes = {
   positive: [
-    "今天的你看起来心情不错呢！愿这份快乐延续到每一天 🌞",
-    "开心的日子值得被记录，继续保持这份好心情呀 ✨",
-    "看到你这么开心，真好！快乐会传染的 🌸",
-    "今天是美好的一天，谢谢你愿意记录下来 🎉",
-    "心情好的时候，连空气都是甜的 🍬",
+    "今天的你看起来心情不错，愿这份轻盈延续到明天。",
+    "快乐值得被认真记录，继续把这份明亮留给生活。",
+    "看见你状态在线，真好，愿好运继续发生。",
+    "今天也是很有能量的一天，记得为自己点个赞。",
+    "心情舒展的时候，连风都像在鼓励你。",
   ],
   neutral: [
-    "平淡的日子也藏着美好，继续用心记录吧 📝",
-    "每一天都有它的意义，坚持写下去 ✍️",
-    "平凡的日常，也是最珍贵的时光 💫",
-    "生活就是由这样的小日子组成的呀 🌿",
-    "记录本身就是一种力量，继续加油 🤍",
+    "平常的一天也值得被温柔记下。",
+    "生活不一定轰轰烈烈，安稳本身就很珍贵。",
+    "继续写下去，你会慢慢看见自己的节奏。",
+    "很多温暖都藏在普通日子里。",
+    "记录本身，就是在认真对待自己。",
   ],
   negative: [
-    "我知道你或许有些低落，但没关系，写下来就是一种释放。明天会更好 💪",
-    "难过的时候，允许自己休息一下。你做得已经很好了 🌈",
-    "每个人都会有心情不好的时候，这很正常。抱抱你 🤗",
-    "心情不好的时候，就把烦恼都写出来吧。写出来，就会好受一些 🌙",
-    "你不是一个人在面对这些。慢慢来，一切都会好起来的 🤍",
-    "感觉累了就歇一歇，你的感受最重要 💝",
+    "低落的时候还能写下来，本身就是一种勇敢。",
+    "先允许自己慢一点，你已经很努力了。",
+    "不开心不是失败，只是你也需要被照顾。",
+    "把情绪写出来，会比一个人扛着轻一点。",
+    "今天难一点也没关系，先把自己放在第一位。",
+    "累了就歇一会儿，恢复元气比逞强更重要。",
   ],
   streak: [
-    "你已经连续记录 {days} 天啦！坚持是件了不起的事 🌟",
-    "连续 {days} 天，你真的很棒！继续保持 🎯",
-    "{days} 天的坚持，见证了你的成长 🌱",
-    "坚持记录 {days} 天，为你点赞 👍",
+    "你已经连续记录 {days} 天了，坚持真的很了不起。",
+    "连续 {days} 天的你，很稳，也很棒。",
+    "{days} 天的坚持，是你给自己的长期温柔。",
+    "别小看这 {days} 天，它们都在证明你的成长。",
   ],
   topics: {
     工作: {
-      positive: ["工作顺利的感觉真好！继续保持 ✨"],
-      neutral: ["工作虽然平凡，但也很有意义 💼"],
+      positive: ["工作状态在线，继续保持这份踏实和光亮。"],
+      neutral: ["工作中的普通日常，也在一点点积累你的能力。"],
       negative: [
-        "工作压力是暂时的，记得照顾好自己 💼",
-        "工作辛苦了，下班后好好放松一下 🍵",
-        "忙完这阵，记得给自己放个假 🏖️",
+        "工作辛苦了，记得下班以后把自己还给生活。",
+        "压力只是阶段性的，照顾好自己比什么都重要。",
       ],
     },
     学习: {
-      positive: ["学习进步的感觉真棒！继续加油 📚"],
-      neutral: ["学习是一辈子的事，慢慢来 📖"],
+      positive: ["学习有进展的感觉很棒，继续往前。"],
+      neutral: ["学习是缓慢积累的过程，别急，慢慢来。"],
       negative: [
-        "学习遇到困难很正常，别着急，一步步来 💪",
-        "累了就休息一下，然后再继续 🎓",
+        "遇到卡点很正常，先停一停，再回来解决它。",
+        "累了就休息，恢复状态比硬撑更有效。",
       ],
     },
     生活: {
-      positive: ["热爱生活的你，真的很棒 🌻"],
-      neutral: ["生活就是这样，有起有落 🎭"],
-      negative: ["生活总会有不如意，但都会过去的 🌅"],
-    },
-    旅行: {
-      positive: ["旅行的回忆真美好！期待下次出发 ✈️"],
-      neutral: ["旅行让人开阔眼界 🌍"],
-      negative: ["旅途虽有疲惫，但风景值得 🏞️"],
+      positive: ["你在认真生活，这件事本身就很闪亮。"],
+      neutral: ["生活会有起伏，但日常里也有很多值得收藏的片段。"],
+      negative: ["生活偶尔不顺也没关系，先把今天过好。"],
     },
     情感: {
-      positive: ["被爱着的感觉真好 💕"],
-      neutral: ["情感的起伏，都是成长 🎭"],
-      negative: ["受伤的时候，更要好好爱自己 💜"],
+      positive: ["被爱和理解包围的感觉，值得珍惜。"],
+      neutral: ["情感里的起伏，也是在帮你更了解自己。"],
+      negative: ["受伤的时候，更要记得温柔地站在自己这边。"],
     },
   },
 };
 
 class CaringMessageGenerator {
-  // 获取随机语录
   static getRandomQuote(quotes) {
+    if (!Array.isArray(quotes) || !quotes.length) return "";
     return quotes[Math.floor(Math.random() * quotes.length)];
   }
 
-  // 计算连续写作天数
+  static weightedPick(quotes) {
+    if (!Array.isArray(quotes) || !quotes.length) return null;
+    const expanded = quotes.flatMap((quote) =>
+      Array.from({ length: Math.max(Number(quote.weight) || 1, 1) }, () => quote),
+    );
+    return expanded[Math.floor(Math.random() * expanded.length)] || quotes[0];
+  }
+
   static async calculateStreak(userId) {
     try {
-      const diaries = await Diary.find({
-        user_id: userId,
-        status: 1,
-      })
-        .select("diary_date created_at")
-        .sort({ diary_date: -1 });
+      const diaries = await Diary.find({ user_id: userId, status: 1 })
+        .select("diary_date createdAt")
+        .sort({ diary_date: -1, createdAt: -1 });
 
-      if (diaries.length === 0) return 0;
+      if (!diaries.length) return 0;
 
-      // 获取所有日记日期（去重）
-      const uniqueDates = new Set();
-      diaries.forEach((diary) => {
-        const date = new Date(diary.diary_date || diary.createdAt);
-        const dateStr = date.toISOString().split("T")[0];
-        uniqueDates.add(dateStr);
-      });
-
-      const sortedDates = Array.from(uniqueDates).sort().reverse();
+      const uniqueDates = Array.from(
+        new Set(
+          diaries.map((diary) => {
+            const date = new Date(diary.diary_date || diary.createdAt);
+            return date.toISOString().split("T")[0];
+          }),
+        ),
+      ).sort().reverse();
 
       let streak = 0;
-      const today = new Date().toISOString().split("T")[0];
-
-      for (let i = 0; i < sortedDates.length; i++) {
-        const expectedDate = new Date();
-        expectedDate.setDate(expectedDate.getDate() - i);
-        const expectedDateStr = expectedDate.toISOString().split("T")[0];
-
-        if (sortedDates[i] === expectedDateStr || (i === 0 && sortedDates[i] <= today)) {
-          streak++;
+      for (let i = 0; i < uniqueDates.length; i += 1) {
+        const expected = new Date();
+        expected.setDate(expected.getDate() - i);
+        const expectedDate = expected.toISOString().split("T")[0];
+        if (uniqueDates[i] === expectedDate) {
+          streak += 1;
         } else {
           break;
         }
@@ -112,64 +106,65 @@ class CaringMessageGenerator {
 
       return streak;
     } catch (error) {
-      console.error("[计算连续天数错误]:", error);
+      console.error("[计算连续写作天数错误]:", error);
       return 0;
     }
   }
 
-  // 分析用户状态
   static async analyzeUserState(userId) {
     try {
-      // 获取最近的分析结果
       const recentAnalyses = await DiaryAnalysis.find({ user_id: userId })
         .sort({ created_at: -1 })
         .limit(30);
+      const recentDiaries = await Diary.find({ user_id: userId, status: 1 })
+        .sort({ diary_date: -1, createdAt: -1 })
+        .limit(30)
+        .select("mood tags diary_date createdAt");
 
-      if (recentAnalyses.length === 0) {
+      if (!recentAnalyses.length && !recentDiaries.length) {
         return {
           avgSentiment: 0,
           sentiment: "neutral",
           topTopics: [],
+          topMoods: [],
           streak: 0,
         };
       }
 
-      // 计算平均情感得分
-      const avgSentiment =
-        recentAnalyses.reduce((sum, a) => sum + (a.sentiment_score || 0), 0) /
-        recentAnalyses.length;
+      const avgSentiment = recentAnalyses.length
+        ? recentAnalyses.reduce((sum, item) => sum + (item.sentiment_score || 0), 0) /
+          recentAnalyses.length
+        : 0;
 
-      // 确定主要情感
-      let sentiment;
-      if (avgSentiment > 0.2) {
-        sentiment = "positive";
-      } else if (avgSentiment < -0.2) {
-        sentiment = "negative";
-      } else {
-        sentiment = "neutral";
-      }
+      const sentiment =
+        avgSentiment > 0.2 ? "positive" : avgSentiment < -0.2 ? "negative" : "neutral";
 
-      // 获取高频主题
       const topicCount = {};
-      recentAnalyses.forEach((a) => {
-        (a.topics || []).forEach((topic) => {
+      recentAnalyses.forEach((item) => {
+        (item.topics || []).forEach((topic) => {
           topicCount[topic] = (topicCount[topic] || 0) + 1;
         });
       });
 
-      const topTopics = Object.entries(topicCount)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([topic]) => topic);
-
-      // 计算连续写作天数
-      const streak = await this.calculateStreak(userId);
+      const moodCount = {};
+      recentDiaries.forEach((diary) => {
+        if (diary.mood) {
+          moodCount[diary.mood] = (moodCount[diary.mood] || 0) + 1;
+        }
+      });
 
       return {
-        avgSentiment: parseFloat(avgSentiment.toFixed(2)),
+        avgSentiment: Number(avgSentiment.toFixed(2)),
         sentiment,
-        topTopics,
-        streak,
+        topTopics: Object.entries(topicCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([topic]) => topic),
+        topMoods: Object.entries(moodCount)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([mood]) => mood),
+        streak: await this.calculateStreak(userId),
       };
     } catch (error) {
       console.error("[分析用户状态错误]:", error);
@@ -177,48 +172,66 @@ class CaringMessageGenerator {
         avgSentiment: 0,
         sentiment: "neutral",
         topTopics: [],
+        topMoods: [],
         streak: 0,
       };
     }
   }
 
-  // 生成关怀语录
+  static async findManagedQuote(state) {
+    const quotes = await CaringQuote.find({
+      enabled: true,
+      sentiment: { $in: [state.sentiment, "all"] },
+    }).lean();
+
+    if (!quotes.length) return null;
+
+    const moodSet = new Set(state.topMoods || []);
+    const topicSet = new Set(state.topTopics || []);
+
+    const scored = quotes
+      .map((quote) => {
+        let score = 0;
+        if (quote.sentiment === state.sentiment) score += 3;
+        if ((quote.moods || []).some((mood) => moodSet.has(mood))) score += 4;
+        if ((quote.tags || []).some((tag) => topicSet.has(tag))) score += 4;
+        if (!(quote.moods || []).length) score += 1;
+        if (!(quote.tags || []).length) score += 1;
+        return { ...quote, _score: score };
+      })
+      .filter((quote) => quote._score > 0)
+      .sort((a, b) => b._score - a._score);
+
+    return this.weightedPick(scored);
+  }
+
   static async generate(userId) {
     try {
       const state = await this.analyzeUserState(userId);
+      const managedQuote = await this.findManagedQuote(state);
 
-      const messages = {
-        caring_message: "",
-        streak_tips: "",
-        topic_tip: "",
-      };
+      const caring_message =
+        managedQuote?.text ||
+        this.getRandomQuote(caringQuotes[state.sentiment] || caringQuotes.neutral);
 
-      // 基础情感语录
-      messages.caring_message = this.getRandomQuote(
-        caringQuotes[state.sentiment] || caringQuotes.neutral,
-      );
+      const streak_tips =
+        state.streak >= 3
+          ? this.getRandomQuote(caringQuotes.streak).replace("{days}", String(state.streak))
+          : "";
 
-      // 连续写作提示
-      if (state.streak >= 3) {
-        const streakQuote = this.getRandomQuote(caringQuotes.streak);
-        messages.streak_tips = streakQuote.replace("{days}", state.streak.toString());
-      }
-
-      // 主题特定提示
-      if (state.topTopics.length > 0) {
-        const mainTopic = state.topTopics[0];
-        if (caringQuotes.topics[mainTopic]) {
-          const topicQuotes = caringQuotes.topics[mainTopic][state.sentiment] ||
-            caringQuotes.topics[mainTopic].neutral;
-          if (topicQuotes && topicQuotes.length > 0) {
-            messages.topic_tip = this.getRandomQuote(topicQuotes);
-          }
-        }
+      let topic_tip = "";
+      const mainTopic = state.topTopics[0];
+      if (mainTopic && caringQuotes.topics[mainTopic]) {
+        const topicQuotes =
+          caringQuotes.topics[mainTopic][state.sentiment] || caringQuotes.topics[mainTopic].neutral;
+        topic_tip = this.getRandomQuote(topicQuotes);
       }
 
       return {
         ...state,
-        ...messages,
+        caring_message,
+        streak_tips,
+        topic_tip,
       };
     } catch (error) {
       console.error("[生成关怀语录错误]:", error);
@@ -226,20 +239,32 @@ class CaringMessageGenerator {
         avgSentiment: 0,
         sentiment: "neutral",
         topTopics: [],
+        topMoods: [],
         streak: 0,
-        caring_message: "记录生活，记录美好 📝",
+        caring_message: "记录生活，也是在照顾自己。",
         streak_tips: "",
         topic_tip: "",
       };
     }
   }
 
-  // 刷新语录（从同类中随机选择）
-  static refresh(userId, currentSentiment) {
-    const sentiment = currentSentiment || "neutral";
+  static async refresh(userId, currentSentiment, moods = [], tags = []) {
+    const state = {
+      sentiment: currentSentiment || "neutral",
+      topMoods: Array.isArray(moods) ? moods : [],
+      topTopics: Array.isArray(tags) ? tags : [],
+    };
+
+    const managedQuote = await this.findManagedQuote(state);
+    if (managedQuote?.text) {
+      return {
+        caring_message: managedQuote.text,
+      };
+    }
+
     return {
       caring_message: this.getRandomQuote(
-        caringQuotes[sentiment] || caringQuotes.neutral,
+        caringQuotes[state.sentiment] || caringQuotes.neutral,
       ),
     };
   }

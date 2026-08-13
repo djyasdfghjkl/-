@@ -43,6 +43,26 @@ const MedalSchema = new Schema({
     type: String,
     trim: true
   },
+
+  // Static icon URL. Keep icon for backward compatibility.
+  iconUrl: {
+    type: String,
+    trim: true,
+    default: ""
+  },
+
+  // Lottie JSON URL used by the mini-program.
+  lottieUrl: {
+    type: String,
+    trim: true,
+    default: ""
+  },
+
+  // Display order in the medal center.
+  sort: {
+    type: Number,
+    default: 0
+  },
   
   // 是否启用
   enabled: {

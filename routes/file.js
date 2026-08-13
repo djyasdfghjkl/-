@@ -3,9 +3,36 @@ const auth = require("../middleware/auth");
 const { role } = require("../middleware/role");
 const multer = require("koa-multer");
 const fs = require("fs");
+const path = require("path");
+const FileAsset = require("../models/FileAsset");
 
 const router = new Router();
 const adminRouter = new Router();
+
+const resolveServerUrl = (ctx) => {
+  const host = ctx.host || "";
+  const localHosts = ["localhost", "127.0.0.1", "::1"];
+  if (localHosts.some((item) => host.includes(item))) {
+    return `http://${host}`;
+  }
+
+  const forwardedProto = ctx.get("x-forwarded-proto");
+  if (forwardedProto) {
+    return `${forwardedProto.split(",")[0].trim()}://${ctx.host}`;
+  }
+
+  const candidates = [ctx.get("origin"), ctx.get("referer")].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      const parsed = new URL(candidate);
+      return `${parsed.protocol}//${ctx.host}`;
+    } catch (error) {
+      console.warn("Failed to parse request URL candidate:", candidate);
+    }
+  }
+
+  return `${ctx.protocol || "http"}://${ctx.host}`;
+};
 
 // Configure multer storage
 const storage = multer.diskStorage({
@@ -82,9 +109,19 @@ router.post("/files/upload", auth, upload.single("file"), async (ctx) => {
       return;
     }
 
-    // File uploaded successfully
-    // 使用 https 协议以满足微信小程序要求
-    const serverUrl = 'https://' + ctx.host;
+    const serverUrl = resolveServerUrl(ctx);
+    const asset = await FileAsset.create({
+      filename: file.filename,
+      originalFilename: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      path: `/${file.filename}`,
+      url: `${serverUrl}/${file.filename}`,
+      description: description || "",
+      type: type || "general",
+      userId: ctx.state.user?._id || ctx.state.user?.id || null,
+    });
+
     ctx.status = 200;
     ctx.body = {
       success: true,
@@ -98,6 +135,8 @@ router.post("/files/upload", auth, upload.single("file"), async (ctx) => {
         url: `${serverUrl}/${file.filename}`,
         description: description,
         type: type,
+        id: asset.id,
+        createdAt: asset.createdAt,
       },
     };
   } catch (error) {
@@ -128,13 +167,13 @@ router.post("/files/upload", auth, upload.single("file"), async (ctx) => {
  */
 router.get("/files", auth, async (ctx) => {
   try {
-    // In a real application, you would store file metadata in a database
-    // and retrieve files associated with the current user
+    const userId = ctx.state.user?._id || ctx.state.user?.id;
+    const files = await FileAsset.find({ userId }).sort({ createdAt: -1 });
     ctx.status = 200;
     ctx.body = {
       success: true,
       message: "Files retrieved successfully",
-      data: [],
+      data: files,
     };
   } catch (error) {
     ctx.status = 500;
@@ -170,12 +209,14 @@ adminRouter.get(
   role(["admin", "superadmin"]),
   async (ctx) => {
     try {
-      // In a real application, you would retrieve all files from database
+      const files = await FileAsset.find()
+        .populate("userId", "username nickname email")
+        .sort({ createdAt: -1 });
       ctx.status = 200;
       ctx.body = {
         success: true,
         message: "All files retrieved successfully",
-        data: [],
+        data: files,
       };
     } catch (error) {
       ctx.status = 500;
@@ -184,6 +225,33 @@ adminRouter.get(
         message: "Failed to retrieve files",
         error: error.message,
       };
+    }
+  },
+);
+
+adminRouter.delete(
+  "/files/:id",
+  auth,
+  role(["admin", "superadmin"]),
+  async (ctx) => {
+    try {
+      const asset = await FileAsset.findById(ctx.params.id);
+      if (!asset) {
+        ctx.status = 404;
+        ctx.body = { success: false, message: "File not found" };
+        return;
+      }
+
+      const uploadRoot = path.resolve("./uploads");
+      const targetPath = path.resolve(uploadRoot, asset.filename);
+      if (targetPath.startsWith(uploadRoot) && fs.existsSync(targetPath)) {
+        fs.unlinkSync(targetPath);
+      }
+      await asset.deleteOne();
+      ctx.body = { success: true, message: "File deleted successfully" };
+    } catch (error) {
+      ctx.status = 500;
+      ctx.body = { success: false, message: "Failed to delete file", error: error.message };
     }
   },
 );

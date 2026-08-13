@@ -1,13 +1,9 @@
-// 错误配置文件
-// 定义各种错误类型及其对应的错误信息
-
 const errorConfig = {
-  // 通用错误
   common: {
     serverError: {
       success: false,
       message: "服务器内部错误",
-      tip: "请稍后重试，如果问题持续存在，请联系系统管理员",
+      tip: "请稍后重试，如问题持续存在，请联系系统管理员",
     },
     badRequest: {
       success: false,
@@ -26,12 +22,10 @@ const errorConfig = {
     },
     unauthenticated: {
       success: false,
-      message: "未认证",
+      message: "未登录",
       tip: "请先登录",
     },
   },
-
-  // 用户相关错误
   user: {
     emailExists: {
       success: false,
@@ -45,13 +39,13 @@ const errorConfig = {
     },
     passwordIncorrect: {
       success: false,
-      message: "密码错误",
-      tip: "请检查密码是否正确",
+      message: "邮箱或密码错误",
+      tip: "请检查账号信息后重试",
     },
     userNotFound: {
       success: false,
       message: "用户不存在",
-      tip: "请检查用户ID是否正确",
+      tip: "请检查用户信息是否正确",
     },
     accountInactive: {
       success: false,
@@ -60,36 +54,32 @@ const errorConfig = {
     },
     superAdminCannotBeModified: {
       success: false,
-      message: "超级管理员身份不能被更改",
-      tip: "超级管理员身份一旦确定，无法更改",
+      message: "超级管理员身份不能被修改",
+      tip: "请使用其他账号执行此操作",
     },
   },
-
-  // 认证相关错误
   auth: {
     tokenExpired: {
       success: false,
       message: "未登录",
-      tip: "请重新登录获取新的Token",
+      tip: "登录已过期，请重新登录",
     },
     tokenInvalid: {
       success: false,
       message: "未登录",
-      tip: "请检查Token是否正确",
+      tip: "登录凭证无效，请重新登录",
     },
     tokenMissing: {
       success: false,
       message: "未登录",
-      tip: "请在请求头中添加Authorization字段",
+      tip: "请在请求头中添加 Authorization 字段",
     },
     verificationFailed: {
       success: false,
       message: "未登录",
-      tip: "请检查验证信息是否正确",
+      tip: "身份校验失败，请重新登录",
     },
   },
-
-  // 兑换码相关错误
   redeem: {
     codeNotFound: {
       success: false,
@@ -104,7 +94,7 @@ const errorConfig = {
     codeUsed: {
       success: false,
       message: "兑换码已被使用",
-      tip: "请使用未使用的兑换码",
+      tip: "请使用其他兑换码",
     },
     generateFailed: {
       success: false,
@@ -112,18 +102,16 @@ const errorConfig = {
       tip: "请稍后重试",
     },
   },
-
-  // 充值相关错误
   recharge: {
     amountInvalid: {
       success: false,
       message: "充值金额无效",
-      tip: "充值金额必须大于0",
+      tip: "充值金额必须大于 0",
     },
     durationInvalid: {
       success: false,
       message: "充值天数无效",
-      tip: "充值天数必须大于0",
+      tip: "充值天数必须大于 0",
     },
     rechargeFailed: {
       success: false,
@@ -131,12 +119,10 @@ const errorConfig = {
       tip: "请稍后重试",
     },
   },
-
-  // 邮箱验证码相关错误
   email: {
     sendFailed: {
       success: false,
-      message: "发送验证码失败",
+      message: "验证码发送失败",
       tip: "请检查邮箱地址是否正确，或稍后重试",
     },
     codeExpired: {
@@ -155,8 +141,6 @@ const errorConfig = {
       tip: "请重新获取验证码",
     },
   },
-
-  // 数据库相关错误
   database: {
     connectionFailed: {
       success: false,
@@ -171,11 +155,9 @@ const errorConfig = {
     duplicateKey: {
       success: false,
       message: "数据已存在",
-      tip: "请检查输入数据是否重复",
+      tip: "请检查输入内容是否重复",
     },
   },
-
-  // 管理员相关错误
   admin: {
     createFailed: {
       success: false,
@@ -190,41 +172,36 @@ const errorConfig = {
     deleteFailed: {
       success: false,
       message: "删除管理员失败",
-      tip: "请检查管理员ID是否正确",
+      tip: "请检查管理员 ID 是否正确",
     },
     notFound: {
       success: false,
       message: "管理员不存在",
-      tip: "请检查管理员ID是否正确",
+      tip: "请检查管理员 ID 是否正确",
     },
   },
 };
 
-// 获取错误信息的函数
 const getError = (errorPath, customMessage = null) => {
-  // 分割错误路径
-  const pathParts = errorPath.split(".");
-  let errorInfo = errorConfig;
+  const parts = String(errorPath || "").split(".");
+  let current = errorConfig;
 
-  // 遍历路径获取错误信息
-  for (const part of pathParts) {
-    if (errorInfo[part]) {
-      errorInfo = errorInfo[part];
+  for (const part of parts) {
+    if (current && Object.prototype.hasOwnProperty.call(current, part)) {
+      current = current[part];
     } else {
-      // 如果路径不存在，返回通用错误
       return errorConfig.common.serverError;
     }
   }
 
-  // 如果提供了自定义消息，使用自定义消息
   if (customMessage) {
     return {
-      ...errorInfo,
+      ...current,
       message: customMessage,
     };
   }
 
-  return errorInfo;
+  return current;
 };
 
 module.exports = {

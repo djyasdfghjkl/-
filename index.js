@@ -1,31 +1,27 @@
 const Koa = require("koa");
 const bodyParser = require("koa-bodyparser");
-const Router = require("koa-router");
 const swaggerJSDoc = require("swagger-jsdoc");
 const dotenv = require("dotenv");
 const fs = require("fs");
+const path = require("path");
+const cors = require("@koa/cors");
+const serve = require("koa-static");
+const { shouldClearDatabaseOnStartup } = require("./config/startupSafety");
 
-// 加载环境变量
 dotenv.config();
 
-// 创建上传目录（如果不存在）
-const uploadDir = "./uploads";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+const uploadRoot = path.resolve(__dirname, "uploads");
+const appStaticRoot = path.resolve(__dirname, "..", "note_view", "static");
+
+if (!fs.existsSync(uploadRoot)) {
+  fs.mkdirSync(uploadRoot, { recursive: true });
 }
 
-// 初始化Koa应用
 const app = new Koa();
 
-// CORS中间件
-const cors = require("@koa/cors");
 app.use(
   cors({
-    origin: (ctx) => {
-      // 允许所有来源，或者根据需要配置白名单
-      const origin = ctx.request.header.origin;
-      return origin || "*";
-    },
+    origin: (ctx) => ctx.request.header.origin || "*",
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowHeaders: [
       "Content-Type",
@@ -37,67 +33,68 @@ app.use(
     ],
     exposeHeaders: ["Authorization"],
     credentials: true,
-    maxAge: 86400, // 24小时
+    maxAge: 86400,
   }),
 );
 
-// 中间件
 app.use(bodyParser());
 
-// 提供上传文件的静态资源服务
-const serve = require("koa-static");
-app.use(serve(uploadDir));
+const serveUploads = serve(uploadRoot);
+const serveAppStatic = serve(appStaticRoot);
 
-// 请求日志中间件
+app.use(async (ctx, next) => {
+  if (ctx.path.startsWith("/static/")) {
+    const originalPath = ctx.path;
+    ctx.path = ctx.path.replace(/^\/static/, "") || "/";
+    await serveAppStatic(ctx, next);
+    ctx.path = originalPath;
+    return;
+  }
+
+  await serveUploads(ctx, next);
+});
+
 const logger = require("./middleware/logger");
-app.use(logger);
-
-// 反爬中间件
 const rateLimit = require("./middleware/rateLimit");
+app.use(logger);
 app.use(rateLimit);
 
-// 错误处理中间件
-app.use(async function (ctx, next) {
+app.use(async (ctx, next) => {
   try {
-    // 记录请求
     console.log("[请求]", ctx.method, ctx.url, ctx.request.body);
-
-    // 执行后续中间件
     await next();
 
-    // 确保返回体有内容
     if (!ctx.body) {
       ctx.body = {
         success: true,
         message: "操作成功",
       };
     }
+
+    if (ctx.body && typeof ctx.body === "object" && !ctx.response.type) {
+      ctx.type = "application/json; charset=utf-8";
+    }
   } catch (error) {
     console.error("[错误处理中间件] 捕获到错误:", error);
-    console.error("[错误处理中间件] 错误堆栈:", error.stack);
+    console.error("[错误堆栈]:", error.stack);
 
-    // 确保返回体有内容
+    ctx.status = error.status || 500;
+    ctx.type = "application/json; charset=utf-8";
     ctx.body = {
       success: false,
       message: error.message || "服务器内部错误",
     };
-
-    // 设置状态码
-    ctx.status = error.status || 500;
   }
 });
 
-// 数据库连接
 const mysql = require("./config/mysql");
 const mongodb = require("./config/mongodb");
 
-// 初始化MongoDB连接
-console.log("正在尝试连接MongoDB...");
-mongodb.connect();
+console.log("正在尝试连接 MongoDB...");
+const mongodbReady = mongodb.connect();
 console.log(process.env.WECHAT_APP_ID, "process.env.WECHAT_APP_ID");
 
-// 测试MySQL连接
-console.log("正在尝试连接MySQL...");
+console.log("正在尝试连接 MySQL...");
 mysql
   .getConnection()
   .then((connection) => {
@@ -106,39 +103,45 @@ mysql
   })
   .catch((error) => {
     console.error("MySQL connection error:", error.message);
-    console.log("服务器将继续启动，即使MySQL连接失败");
+    console.log("服务器将继续启动，即使 MySQL 连接失败");
   });
 
-// 检查是否需要清空数据库
-if (process.env.CLEAR_DATABASE === "true") {
-  console.log("检测到CLEAR_DATABASE=true，准备清空数据库...");
+async function initApp() {
+  await mongodbReady;
+
+  const initSuperAdmin = require("./config/init");
+  const initDefaultMoods = require("./config/initMoods");
+  const initDefaultEmojis = require("./config/initEmojis");
+  const { initDefaultMedals } = require("./utils/medalManager");
+
+  await initSuperAdmin();
+  await initDefaultMedals();
+  await initDefaultMoods();
+  await initDefaultEmojis();
+}
+
+if (shouldClearDatabaseOnStartup()) {
+  console.log("检测到 CLEAR_DATABASE=true，准备清空数据库...");
   const { clearAllDatabases } = require("./config/clearDB");
-  clearAllDatabases().then((result) => {
-    console.log(result.message);
-    // 数据库清空后重新初始化
-    initApp();
-  });
+  clearAllDatabases()
+    .then((result) => {
+      console.log(result.message);
+      return initApp();
+    })
+    .catch((error) => {
+      console.error("清空数据库失败:", error);
+    });
 } else {
-  // 正常初始化应用
-  initApp();
+  if (process.env.CLEAR_DATABASE === "true") {
+    console.warn(
+      "忽略 CLEAR_DATABASE=true。启动清库已禁用，请使用独立的清库脚本和明确确认流程。",
+    );
+  }
+  initApp().catch((error) => {
+    console.error("初始化应用失败:", error);
+  });
 }
 
-// 初始化应用函数
-function initApp() {
-  // 初始化超级管理员账号
-    const initSuperAdmin = require("./config/init");
-    initSuperAdmin();
-
-    // 初始化默认勋章
-    const { initDefaultMedals } = require("./utils/medalManager");
-    initDefaultMedals();
-
-    // 初始化默认心情
-    const initDefaultMoods = require("./config/initMoods");
-    initDefaultMoods();
-}
-
-// Swagger配置
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -158,18 +161,16 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJSDoc(swaggerOptions);
 
-// Swagger JSON端点
-app.use(function (ctx, next) {
+app.use(async (ctx, next) => {
   if (ctx.path === "/swagger.json" && ctx.method === "GET") {
     ctx.type = "application/json";
     ctx.body = swaggerSpec;
-  } else {
-    return next();
+    return;
   }
+  await next();
 });
 
-// Swagger UI端点
-app.use(function (ctx, next) {
+app.use(async (ctx, next) => {
   if (ctx.path === "/api-docs" && ctx.method === "GET") {
     ctx.type = "text/html";
     ctx.body = `
@@ -185,121 +186,100 @@ app.use(function (ctx, next) {
         <script>
           SwaggerUIBundle({
             url: "/swagger.json",
-            dom_id: '#swagger-ui'
+            dom_id: "#swagger-ui"
           });
         </script>
       </body>
       </html>
     `;
-  } else {
-    return next();
+    return;
   }
+  await next();
 });
 
-// 路由
 const testRouter = require("./routes/test");
 const userRouterModule = require("./routes/user");
-const userRouter = userRouterModule.router;
-const userAdminRouter = userRouterModule.adminRouter;
-const userSuperadminRouter = userRouterModule.superadminRouter;
 const rechargeRouterModule = require("./routes/recharge");
-const rechargeRouter = rechargeRouterModule.router;
-const rechargeAdminRouter = rechargeRouterModule.adminRouter;
 const redeemRouterModule = require("./routes/redeem");
-const redeemRouter = redeemRouterModule.router;
-const redeemAdminRouter = redeemRouterModule.adminRouter;
 const dictionaryRouterModule = require("./routes/dictionary");
-const dictionaryRouter = dictionaryRouterModule.router;
-const dictionaryAdminRouter = dictionaryRouterModule.adminRouter;
 const medalRouterModule = require("./routes/medal");
-const medalRouter = medalRouterModule.router;
-const medalAdminRouter = medalRouterModule.adminRouter;
 const fileRouterModule = require("./routes/file");
-const fileRouter = fileRouterModule.router;
-const fileAdminRouter = fileRouterModule.adminRouter;
 const exportImportRouterModule = require("./routes/export-import");
-const exportImportRouter = exportImportRouterModule.router;
-const exportImportAdminRouter = exportImportRouterModule.adminRouter;
-const squareRouter = require("./routes/square");
 const diaryRouterModule = require("./routes/diary");
-const diaryRouter = diaryRouterModule.router;
-const diaryAdminRouter = diaryRouterModule.adminRouter;
 const emojiRouterModule = require("./routes/emoji");
-const emojiRouter = emojiRouterModule.router;
-const emojiAdminRouter = emojiRouterModule.adminRouter;
-const moodRouter = require("./routes/mood");
 const topicRouterModule = require("./routes/topic");
-const topicRouter = topicRouterModule.router;
-const topicAdminRouter = topicRouterModule.adminRouter;
+const adminUserRouterModule = require("./routes/admin-user");
+const adminDiaryRouterModule = require("./routes/admin-diary");
+const adminBlacklistRouterModule = require("./routes/admin-blacklist");
+const caringQuoteRouterModule = require("./routes/caring-quote");
+const tagRouterModule = require("./routes/tag");
+const notebookRouterModule = require("./routes/notebook");
+
+const squareRouter = require("./routes/square");
+const moodRouter = require("./routes/mood");
 const adRouter = require("./routes/ad");
 const adEarningsRouter = require("./routes/ad-earnings");
 const statsRouter = require("./routes/stats");
 const analysisRouter = require("./routes/analysis");
-const tagRouterModule = require("./routes/tag");
-const tagRouter = tagRouterModule.router;
-const tagAdminRouter = tagRouterModule.adminRouter;
-const notebookRouterModule = require("./routes/notebook");
-const notebookRouter = notebookRouterModule.router;
-const notebookAdminRouter = notebookRouterModule.adminRouter;
+const userBlockRouter = require("./routes/user-block");
 
-// 注册路由的函数
-function registerRoutes(app, routers) {
-  routers.forEach((router) => {
-    app.use(router.routes());
-    app.use(router.allowedMethods());
+function registerRoutes(targetApp, routers) {
+  routers.filter(Boolean).forEach((router) => {
+    targetApp.use(router.routes());
+    targetApp.use(router.allowedMethods());
   });
 }
 
-// 注册所有路由
 registerRoutes(app, [
   testRouter,
-  userRouter,
-  userAdminRouter,
-  userSuperadminRouter,
-  rechargeRouter,
-  rechargeAdminRouter,
-  redeemRouter,
-  redeemAdminRouter,
-  dictionaryRouter,
-  dictionaryAdminRouter,
-  medalRouter,
-  medalAdminRouter,
-  fileRouter,
-  fileAdminRouter,
-  exportImportRouter,
-  exportImportAdminRouter,
+  userRouterModule.router,
+  userRouterModule.adminRouter,
+  userRouterModule.superadminRouter,
+  rechargeRouterModule.router,
+  rechargeRouterModule.adminRouter,
+  redeemRouterModule.router,
+  redeemRouterModule.adminRouter,
+  dictionaryRouterModule.router,
+  dictionaryRouterModule.adminRouter,
+  medalRouterModule.router,
+  medalRouterModule.adminRouter,
+  fileRouterModule.router,
+  fileRouterModule.adminRouter,
+  exportImportRouterModule.router,
+  exportImportRouterModule.adminRouter,
   squareRouter,
-  diaryRouter,
-  diaryAdminRouter,
-  emojiRouter,
-  emojiAdminRouter,
+  diaryRouterModule.router,
+  diaryRouterModule.adminRouter,
+  emojiRouterModule.router,
+  emojiRouterModule.adminRouter,
   moodRouter,
-  topicRouter,
-  topicAdminRouter,
+  topicRouterModule.router,
+  topicRouterModule.adminRouter,
   adRouter,
   adEarningsRouter,
   statsRouter,
   analysisRouter,
-  tagRouter,
-  tagAdminRouter,
-  notebookRouter,
-  notebookAdminRouter,
+  userBlockRouter,
+  adminUserRouterModule.adminRouter,
+  adminDiaryRouterModule.adminRouter,
+  adminBlacklistRouterModule.adminRouter,
+  caringQuoteRouterModule.adminRouter,
+  tagRouterModule.router,
+  tagRouterModule.adminRouter,
+  notebookRouterModule.router,
+  notebookRouterModule.adminRouter,
 ]);
 
-// 端口自动递增函数
-function startServerWithAutoPort(app, startPort) {
-  app
-    .listen(startPort, function () {
+function startServerWithAutoPort(targetApp, startPort) {
+  targetApp
+    .listen(startPort, () => {
       console.log("Server running on http://localhost:" + startPort);
       console.log("API docs at http://localhost:" + startPort + "/api-docs");
     })
-    .on("error", function (error) {
+    .on("error", (error) => {
       if (error.code === "EADDRINUSE") {
-        console.log(
-          "端口 " + startPort + " 已被占用，尝试使用端口 " + (startPort + 1),
-        );
-        // 端口被占用，自动尝试下一个端口
-        startServerWithAutoPort(app, startPort + 1);
+        console.log("端口 " + startPort + " 已被占用，尝试使用端口 " + (startPort + 1));
+        startServerWithAutoPort(targetApp, startPort + 1);
       } else {
         console.error("服务器启动失败:", error);
         process.exit(1);
@@ -307,14 +287,11 @@ function startServerWithAutoPort(app, startPort) {
     });
 }
 
-// 导出app对象供serverless-http使用
 module.exports = app;
 
-// 在本地运行时启动服务器
 if (require.main === module) {
-  // 启动服务器（自动递增端口）
-  const startPort = parseInt(process.env.PORT) || 3000;
-  console.log("Y准备启动服务器...");
+  const startPort = parseInt(process.env.PORT, 10) || 3000;
+  console.log("准备启动服务器...");
   console.log(`尝试在端口 ${startPort} 启动服务器...`);
   startServerWithAutoPort(app, startPort);
 }

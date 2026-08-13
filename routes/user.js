@@ -6,14 +6,38 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const EmailVerification = require("../models/EmailVerification");
 const UserStatsDaily = require("../models/UserStatsDaily");
+const UserMedal = require("../models/UserMedal");
 const { sendVerificationEmail } = require("../config/email");
 const auth = require("../middleware/auth");
 const { role, canSetRole } = require("../middleware/role");
-const { isConnected } = require("../config/mongodb");
+const { isConnected, connect: connectMongo } = require("../config/mongodb");
 const { updateLoginStats } = require("../utils/loginStats");
-const { checkAndAwardMedals } = require("../utils/medalManager");
+const { checkAndAwardMedals, getMedalVisual } = require("../utils/medalManager");
 const { formatDateTime } = require("../utils/dateUtils");
 const { getError } = require("../config/errorConfig");
+const { canManageUser } = require("../utils/adminAccess");
+
+const buildUserMedals = async (userId) => {
+  const userMedals = await UserMedal.find({ userId })
+    .populate("medalId")
+    .sort({ obtainedAt: -1 });
+
+  return userMedals
+    .map((record) => {
+      const medal = record.medalId?.toJSON ? record.medalId.toJSON() : record.medalId;
+      if (!medal) return null;
+      return {
+        ...medal,
+        ...getMedalVisual(medal),
+        relationId: record.id || record._id?.toString?.(),
+        awardedAt: record.obtainedAt,
+        obtainedDate: record.obtainedAt,
+        reason: record.reason || "",
+        obtained: true,
+      };
+    })
+    .filter(Boolean);
+};
 
 /**
  * @swagger
@@ -285,9 +309,8 @@ router.post("/users/login", async (ctx) => {
     const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
     user.lastLoginIp = userIp;
     user.last_login_ip = userIp;
-    user.lastLoginDate = new Date();
     user.last_login_at = new Date();
-    user.loginCount += 1;
+    user.loginCount = (user.loginCount || 0) + 1;
     await user.save();
 
     // 更新登录统计信息
@@ -425,6 +448,7 @@ router.post("/users/login", async (ctx) => {
 router.get("/users/profile", auth, async (ctx) => {
   try {
     const user = ctx.state.user;
+    const medals = await buildUserMedals(user._id);
     console.log(
       "[获取个人信息请求]",
       `用户ID: ${user._id}, 用户名: ${user.username}`,
@@ -485,6 +509,7 @@ router.get("/users/profile", auth, async (ctx) => {
         birthday: user.birthday,
         bio: user.bio,
         signature: user.signature,
+        location: user.city || "",
         role: user.role,
         status: user.status,
         vip_expire: user.vip_expire,
@@ -497,7 +522,7 @@ router.get("/users/profile", auth, async (ctx) => {
         follower_count: user.follower_count,
         following_count: user.following_count,
         settings: user.settings,
-        medals: user.medals,
+        medals,
         totalLoginDays: user.totalLoginDays || 0,
         consecutiveLoginDays: user.consecutiveLoginDays || 0,
         last_login_at: user.last_login_at,
@@ -561,6 +586,7 @@ router.get("/users/profile", auth, async (ctx) => {
 router.put("/users/profile", auth, async (ctx) => {
   try {
     const user = ctx.state.user;
+    const medals = await buildUserMedals(user._id);
     console.log(
       "[更新个人信息请求]",
       `用户ID: ${user._id}, 用户名: ${user.username}`,
@@ -576,6 +602,7 @@ router.put("/users/profile", auth, async (ctx) => {
       bio,
       signature,
       settings,
+      location,
     } = ctx.request.body;
 
     // 更新用户信息
@@ -587,6 +614,7 @@ router.put("/users/profile", auth, async (ctx) => {
     if (birthday) user.birthday = birthday;
     if (bio !== undefined) user.bio = bio;
     if (signature !== undefined) user.signature = signature;
+    if (location !== undefined) user.city = location;
     if (settings) user.settings = { ...user.settings, ...settings };
 
     await user.save();
@@ -647,6 +675,7 @@ router.put("/users/profile", auth, async (ctx) => {
         birthday: user.birthday,
         bio: user.bio,
         signature: user.signature,
+        location: user.city || "",
         role: user.role,
         status: user.status,
         vip_expire: user.vip_expire,
@@ -659,7 +688,7 @@ router.put("/users/profile", auth, async (ctx) => {
         follower_count: user.follower_count,
         following_count: user.following_count,
         settings: user.settings,
-        medals: user.medals,
+        medals,
         totalLoginDays: user.totalLoginDays || 0,
         consecutiveLoginDays: user.consecutiveLoginDays || 0,
         last_login_at: user.last_login_at,
@@ -812,6 +841,113 @@ router.put(
       console.error("[更新用户角色错误]:", error);
       ctx.status = 500;
       ctx.body = { success: false, message: "更新角色失败：" + error.message };
+    }
+  },
+);
+
+router.put(
+  "/users/:id",
+  auth,
+  role(["admin", "superadmin"]),
+  async (ctx) => {
+    try {
+      const adminUser = ctx.state.user;
+      const user = await User.findById(ctx.params.id);
+      if (!user) {
+        ctx.status = 404;
+        ctx.body = { success: false, message: "用户不存在" };
+        return;
+      }
+
+      if (user.role === 4 && adminUser.role !== 4) {
+        ctx.status = 403;
+        ctx.body = { success: false, message: "无权修改超级管理员" };
+        return;
+      }
+
+      const {
+        username,
+        nickname,
+        email,
+        phone,
+        avatar,
+        gender,
+        birthday,
+        bio,
+        signature,
+        location,
+        status,
+      } = ctx.request.body || {};
+
+      if (username !== undefined) user.username = String(username).trim();
+      if (nickname !== undefined) user.nickname = String(nickname).trim();
+      if (email !== undefined) user.email = String(email).trim() || undefined;
+      if (phone !== undefined) user.phone = String(phone).trim() || undefined;
+      if (avatar !== undefined) user.avatar = String(avatar).trim();
+      if (gender !== undefined) user.gender = Number(gender);
+      if (birthday !== undefined && birthday) user.birthday = birthday;
+      if (bio !== undefined) user.bio = String(bio);
+      if (signature !== undefined) user.signature = String(signature);
+      if (location !== undefined) user.city = String(location);
+      if (status !== undefined) {
+        const nextStatus = Number(status);
+        if (![0, 1, 2].includes(nextStatus)) {
+          ctx.status = 400;
+          ctx.body = { success: false, message: "无效的用户状态" };
+          return;
+        }
+        user.status = nextStatus;
+      }
+
+      await user.save();
+      const result = user.toObject();
+      delete result.password;
+      ctx.body = {
+        success: true,
+        message: "用户更新成功",
+        data: result,
+      };
+    } catch (error) {
+      ctx.status = 500;
+      ctx.body = {
+        success: false,
+        message: `用户更新失败: ${error.message}`,
+      };
+    }
+  },
+);
+
+router.delete(
+  "/users/:id",
+  auth,
+  role(["admin", "superadmin"]),
+  async (ctx) => {
+    try {
+      const user = await User.findById(ctx.params.id);
+      if (!user) {
+        ctx.status = 404;
+        ctx.body = { success: false, message: "用户不存在" };
+        return;
+      }
+      if (user.role === 4) {
+        ctx.status = 403;
+        ctx.body = { success: false, message: "不能删除超级管理员" };
+        return;
+      }
+
+      user.status = 0;
+      await user.save();
+      ctx.body = {
+        success: true,
+        message: "用户已禁用",
+        data: { id: user._id, status: user.status },
+      };
+    } catch (error) {
+      ctx.status = 500;
+      ctx.body = {
+        success: false,
+        message: `用户禁用失败: ${error.message}`,
+      };
     }
   },
 );
@@ -1149,7 +1285,7 @@ superadminRouter.put("/admins/:id", auth, role(["superadmin"]), async (ctx) => {
     console.log("[更新管理员信息参数]", ctx.request.body);
     const { username, password, avatar, signature, bio } = ctx.request.body;
 
-    const admin = await User.findOne({ _id: id, role: "admin" });
+    const admin = await User.findOne({ _id: id, role: 3 });
     if (!admin) {
       console.log("[更新管理员信息失败]", "管理员不存在");
       ctx.status = 404;
@@ -1299,7 +1435,7 @@ superadminRouter.put(
         `超级管理员: ${superadminUser.username}, 管理员ID: ${id}`,
       );
 
-      const admin = await User.findOne({ _id: id, role: "admin" });
+      const admin = await User.findOne({ _id: id, role: 3 });
       if (!admin) {
         console.log("[停用管理员账号失败]", "管理员不存在");
         ctx.status = 404;
@@ -1307,7 +1443,7 @@ superadminRouter.put(
         return;
       }
 
-      admin.status = "inactive";
+      admin.status = 0;
       await admin.save();
 
       console.log(
@@ -1367,7 +1503,7 @@ superadminRouter.delete(
         `超级管理员: ${superadminUser.username}, 管理员ID: ${id}`,
       );
 
-      const admin = await User.findOne({ _id: id, role: "admin" });
+      const admin = await User.findOne({ _id: id, role: 3 });
       if (!admin) {
         console.log("[删除管理员失败]", "管理员不存在");
         ctx.status = 404;
@@ -1437,6 +1573,8 @@ router.post("/users/wechat-login", async (ctx) => {
       ctx.body = getError("common.badRequest");
       return;
     }
+
+    await connectMongo();
 
     // 检查MongoDB连接状态
     if (!isConnected()) {
@@ -1525,7 +1663,6 @@ router.post("/users/wechat-login", async (ctx) => {
     const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
     user.lastLoginIp = userIp;
     user.last_login_ip = userIp;
-    user.lastLoginDate = new Date();
     user.last_login_at = new Date();
     user.loginCount = (user.loginCount || 0) + 1;
     await user.save();
@@ -1858,7 +1995,6 @@ router.post("/users/douyin-login", async (ctx) => {
     const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
     user.lastLoginIp = userIp;
     user.last_login_ip = userIp;
-    user.lastLoginDate = new Date();
     user.last_login_at = new Date();
     user.loginCount = (user.loginCount || 0) + 1;
     await user.save();
@@ -2075,7 +2211,6 @@ router.post("/users/kuaishou-login", async (ctx) => {
     const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
     user.lastLoginIp = userIp;
     user.last_login_ip = userIp;
-    user.lastLoginDate = new Date();
     user.last_login_at = new Date();
     user.loginCount = (user.loginCount || 0) + 1;
     await user.save();
@@ -2292,7 +2427,6 @@ router.post("/users/alipay-login", async (ctx) => {
     const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
     user.lastLoginIp = userIp;
     user.last_login_ip = userIp;
-    user.lastLoginDate = new Date();
     user.last_login_at = new Date();
     user.loginCount = (user.loginCount || 0) + 1;
     await user.save();
@@ -2506,7 +2640,6 @@ router.post("/users/qq-login", async (ctx) => {
     const userIp = ctx.headers["x-forwarded-for"] || ctx.ip || ctx.ips[0];
     user.lastLoginIp = userIp;
     user.last_login_ip = userIp;
-    user.lastLoginDate = new Date();
     user.last_login_at = new Date();
     user.loginCount = (user.loginCount || 0) + 1;
     await user.save();

@@ -9,6 +9,28 @@ const auth = require("../middleware/auth");
 const optionalAuth = require("../middleware/optionalAuth");
 const { role } = require("../middleware/role");
 const DiaryAnalyzer = require("../utils/diaryAnalyzer");
+const multer = require("koa-multer");
+
+const diaryImportUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024,
+  },
+});
+
+function normalizeMoodDetail(input) {
+  if (!input || typeof input !== "object") return undefined;
+  const detail = {
+    emoji_id: String(input.emoji_id || input.emojiId || input.id || "").trim(),
+    label: String(input.label || input.name || input.mood || "").trim(),
+    resource_type: String(input.resource_type || input.resourceType || "").trim(),
+    resource_value: String(input.resource_value || input.resourceValue || "").trim(),
+    preview_text: String(input.preview_text || input.previewText || "").trim(),
+    preview_url: String(input.preview_url || input.previewUrl || "").trim(),
+    thumbnail_url: String(input.thumbnail_url || input.thumbnailUrl || "").trim(),
+  };
+  return Object.values(detail).some(Boolean) ? detail : undefined;
+}
 
 // 统一格式化广场日记数据
 function formatSquareDiary(diary, isLiked = false, isFollowed = false) {
@@ -26,6 +48,7 @@ function formatSquareDiary(diary, isLiked = false, isFollowed = false) {
     tags: diary.tags,
     weather: diary.weather,
     mood: diary.mood,
+    mood_detail: diary.mood_detail,
     signature: diary.signature,
     location: diary.location,
     location_city: diary.location_city,
@@ -124,6 +147,8 @@ router.post("/diaries", auth, async (ctx) => {
       weather,
       mood,
       emotion,
+      mood_detail,
+      moodDetail,
       signature,
       location,
       location_coords,
@@ -139,7 +164,8 @@ router.post("/diaries", auth, async (ctx) => {
     if (finalDiaryDate && finalDiaryDate.includes("T")) {
       finalDiaryDate = finalDiaryDate.split("T")[0];
     }
-    const finalMood = mood || emotion;
+    const finalMoodDetail = normalizeMoodDetail(mood_detail || moodDetail);
+    const finalMood = mood || emotion || finalMoodDetail?.label || "";
 
     let finalTags = tags;
     if (typeof tags === "string") {
@@ -171,6 +197,7 @@ router.post("/diaries", auth, async (ctx) => {
       diary_date: finalDiaryDate,
       weather,
       mood: finalMood,
+      mood_detail: finalMoodDetail,
       signature,
       location,
       location_coords,
@@ -288,6 +315,7 @@ router.get("/diaries", auth, async (ctx) => {
         diary_date: diary.diary_date,
         weather: diary.weather,
         mood: diary.mood,
+        mood_detail: diary.mood_detail,
         signature: diary.signature,
         location: diary.location,
         location_city: diary.location_city,
@@ -717,6 +745,21 @@ router.get("/diaries/stats", auth, async (ctx) => {
     const diaries = await Diary.find(baseQuery).lean();
     const total = diaries.length;
     const totalWords = diaries.reduce((sum, d) => sum + (d.word_count || 0), 0);
+    const activeDates = [
+      ...new Set(
+        diaries
+          .filter((d) => d.diary_date)
+          .map((d) => new Date(d.diary_date).toISOString().split("T")[0]),
+      ),
+    ].sort((a, b) => b.localeCompare(a));
+    let streak = 0;
+    const cursor = new Date();
+    cursor.setHours(0, 0, 0, 0);
+    const dateSet = new Set(activeDates);
+    while (dateSet.has(cursor.toISOString().split("T")[0])) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    }
 
     // 标签统计
     const tagCount = {};
@@ -754,6 +797,7 @@ router.get("/diaries/stats", auth, async (ctx) => {
       success: true,
       data: {
         total,
+        streak,
         total_words: totalWords,
         avg_words: total > 0 ? Math.round(totalWords / total) : 0,
         tags: Object.entries(tagCount)
@@ -992,7 +1036,17 @@ router.put("/diaries/:id", auth, async (ctx) => {
     }
 
     // 更新日记信息
-    const updateData = ctx.request.body;
+    const updateData = { ...ctx.request.body };
+    const nextMoodDetail = normalizeMoodDetail(updateData.mood_detail || updateData.moodDetail);
+    if (nextMoodDetail) {
+      updateData.mood_detail = nextMoodDetail;
+      if (!updateData.mood) {
+        updateData.mood = nextMoodDetail.label;
+      }
+    } else if ("mood_detail" in updateData || "moodDetail" in updateData) {
+      updateData.mood_detail = undefined;
+    }
+    delete updateData.moodDetail;
     Object.assign(diary, updateData);
 
     await diary.save();
@@ -1075,6 +1129,150 @@ router.delete("/diaries/:id", auth, async (ctx) => {
     console.error("[错误堆栈]:", error.stack);
     ctx.status = 500;
     ctx.body = { success: false, message: "删除日记失败：" + error.message };
+  }
+});
+
+router.post("/diaries/import", auth, diaryImportUpload.single("file"), async (ctx) => {
+  try {
+    const file = ctx.req.file;
+    if (!file || !file.buffer) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "请选择要导入的文件" };
+      return;
+    }
+
+    const rawText = file.buffer.toString("utf8").replace(/^\uFEFF/, "").trim();
+    if (!rawText) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "导入文件内容为空" };
+      return;
+    }
+
+    let records = [];
+    const extension = String(file.originalname || "").toLowerCase().split(".").pop();
+
+    if (extension === "json" || rawText.startsWith("[") || rawText.startsWith("{")) {
+      const parsed = JSON.parse(rawText);
+      records = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed.data)
+          ? parsed.data
+          : Array.isArray(parsed.diaries)
+            ? parsed.diaries
+            : [];
+    } else {
+      const blocks = rawText
+        .split(/\n\s*[-—─]{3,}\s*\n/g)
+        .map((block) => block.trim())
+        .filter(Boolean);
+
+      records = blocks.map((block) => {
+        const lines = block.split(/\r?\n/);
+        const header = lines.shift() || "";
+        const match = header.match(/^【([^】]*)】\s*(.*)$/);
+        const meta = lines.shift() || "";
+        const moodMatch = meta.match(/心情：([^ ]*)/);
+        const weatherMatch = meta.match(/天气：(.+)$/);
+
+        return {
+          diary_date: match?.[1] || undefined,
+          title: match?.[2] || "未命名日记",
+          mood: moodMatch?.[1] || "",
+          weather: weatherMatch?.[1] || "",
+          content: lines.join("\n").trim(),
+        };
+      });
+    }
+
+    if (!records.length) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "没有可导入的日记内容" };
+      return;
+    }
+
+    const userId = ctx.state.user._id;
+    const documents = records
+      .map((item) => ({
+        user_id: userId,
+        title: String(item.title || "未命名日记").trim().slice(0, 200),
+        content: String(item.content || item.diary || "").trim(),
+        diary_date: item.diary_date ? new Date(item.diary_date) : new Date(),
+        weather: String(item.weather || "").trim().slice(0, 50),
+        mood: String(item.mood || "").trim().slice(0, 50),
+        mood_detail: normalizeMoodDetail(item.mood_detail || item.moodDetail),
+        signature: String(item.signature || "").trim().slice(0, 200),
+        location: String(item.location || "").trim().slice(0, 255),
+        location_city: String(item.location_city || item.locationCity || "").trim().slice(0, 100),
+        location_coords: item.location_coords || item.locationCoords,
+        cover: String(item.cover || "").trim().slice(0, 500),
+        images: Array.isArray(item.images) ? item.images : [],
+        tags: Array.isArray(item.tags) ? item.tags.map((tag) => String(tag).trim()).filter(Boolean) : [],
+        is_public: Boolean(item.is_public ?? item.isPublic),
+      }))
+      .filter((item) => item.content || item.title);
+
+    if (!documents.length) {
+      ctx.status = 400;
+      ctx.body = { success: false, message: "没有可导入的有效日记" };
+      return;
+    }
+
+    const imported = await Diary.insertMany(documents, { ordered: false });
+    ctx.body = {
+      success: true,
+      message: `导入完成，共导入 ${imported.length} 篇日记`,
+      data: {
+        importedCount: imported.length,
+        totalCount: records.length,
+      },
+    };
+  } catch (error) {
+    console.error("[导入日记错误]:", error);
+    ctx.status = 400;
+    ctx.body = {
+      success: false,
+      message: error instanceof SyntaxError ? "导入文件格式不正确" : "导入日记失败",
+    };
+  }
+});
+
+router.post("/diaries/:id/share", auth, async (ctx) => {
+  try {
+    const user = ctx.state.user;
+    const { id } = ctx.params;
+
+    const diary = await Diary.findOne({
+      _id: id,
+      user_id: user._id,
+      status: 1,
+    });
+
+    if (!diary) {
+      ctx.status = 404;
+      ctx.body = {
+        success: false,
+        message: "日记不存在",
+      };
+      return;
+    }
+
+    diary.share_count = (diary.share_count || 0) + 1;
+    await diary.save();
+
+    ctx.body = {
+      success: true,
+      message: "分享计数成功",
+      data: {
+        id: diary._id,
+        share_count: diary.share_count,
+      },
+    };
+  } catch (error) {
+    ctx.status = 500;
+    ctx.body = {
+      success: false,
+      message: "分享失败：" + error.message,
+    };
   }
 });
 
