@@ -9,31 +9,6 @@ const FileAsset = require("../models/FileAsset");
 const router = new Router();
 const adminRouter = new Router();
 
-const resolveServerUrl = (ctx) => {
-  const host = ctx.host || "";
-  const localHosts = ["localhost", "127.0.0.1", "::1"];
-  if (localHosts.some((item) => host.includes(item))) {
-    return `http://${host}`;
-  }
-
-  const forwardedProto = ctx.get("x-forwarded-proto");
-  if (forwardedProto) {
-    return `${forwardedProto.split(",")[0].trim()}://${ctx.host}`;
-  }
-
-  const candidates = [ctx.get("origin"), ctx.get("referer")].filter(Boolean);
-  for (const candidate of candidates) {
-    try {
-      const parsed = new URL(candidate);
-      return `${parsed.protocol}//${ctx.host}`;
-    } catch (error) {
-      console.warn("Failed to parse request URL candidate:", candidate);
-    }
-  }
-
-  return `${ctx.protocol || "http"}://${ctx.host}`;
-};
-
 // Configure multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -109,14 +84,14 @@ router.post("/files/upload", auth, upload.single("file"), async (ctx) => {
       return;
     }
 
-    const serverUrl = resolveServerUrl(ctx);
+    const assetPath = `/${file.filename}`;
     const asset = await FileAsset.create({
       filename: file.filename,
       originalFilename: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
-      path: `/${file.filename}`,
-      url: `${serverUrl}/${file.filename}`,
+      path: assetPath,
+      url: assetPath,
       description: description || "",
       type: type || "general",
       userId: ctx.state.user?._id || ctx.state.user?.id || null,
@@ -131,8 +106,8 @@ router.post("/files/upload", auth, upload.single("file"), async (ctx) => {
         originalFilename: file.originalname,
         mimeType: file.mimetype,
         size: file.size,
-        path: `/${file.filename}`,
-        url: `${serverUrl}/${file.filename}`,
+        path: assetPath,
+        url: assetPath,
         description: description,
         type: type,
         id: asset.id,

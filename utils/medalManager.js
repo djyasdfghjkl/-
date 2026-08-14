@@ -189,19 +189,21 @@ const resolveLocalAssetPath = (value) => {
 const assetExists = (value) => {
   if (!isAssetPath(value)) return false;
 
+  const localPath = resolveLocalAssetPath(value);
+  if (localPath) {
+    return fs.existsSync(localPath);
+  }
+
   if (isHttpUrl(value)) {
     try {
       const url = new URL(value);
-      if (!["localhost", "127.0.0.1", "::1"].includes(url.hostname)) {
-        return true;
-      }
+      return !["localhost", "127.0.0.1", "::1"].includes(url.hostname);
     } catch (error) {
       return false;
     }
   }
 
-  const localPath = resolveLocalAssetPath(value);
-  return Boolean(localPath && fs.existsSync(localPath));
+  return false;
 };
 
 const getConditionSummary = (condition = {}) => {
