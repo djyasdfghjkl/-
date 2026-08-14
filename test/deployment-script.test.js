@@ -16,6 +16,13 @@ test("the update command rolls back when the replacement version is unhealthy", 
   assert.match(script, /git reset --hard "\$PREVIOUS_REF"/);
 });
 
+test("the update command performs Git operations as the application user", () => {
+  const script = readScript("deploy-dist.sh");
+
+  assert.match(script, /APP_USER="\$\{APP_USER:-www\}"/);
+  assert.match(script, /runuser -u "\$APP_USER" -- env "PATH=\$PATH"/);
+});
+
 test("the bootstrap command refuses to replace the app without its environment file", () => {
   const script = readScript("bootstrap-dist-server.sh");
 
@@ -27,4 +34,13 @@ test("the bootstrap command accepts a server-local Git repository", () => {
   const script = readScript("bootstrap-dist-server.sh");
 
   assert.match(script, /REPOSITORY_URL="\$\{REPOSITORY_URL:-/);
+});
+
+test("the bootstrap service forces its dedicated port after loading .env", () => {
+  const script = readScript("bootstrap-dist-server.sh");
+
+  assert.match(
+    script,
+    /ExecStart=\/usr\/bin\/env PORT=3006 \/www\/server\/nodejs\/v18\.20\.8\/bin\/node/,
+  );
 });

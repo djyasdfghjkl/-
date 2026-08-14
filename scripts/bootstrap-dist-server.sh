@@ -74,7 +74,7 @@ EnvironmentFile=-/www/wwwroot/note/dist/.env
 Environment=NODE_ENV=production
 Environment=PORT=3006
 Environment=PATH=/www/server/nodejs/v18.20.8/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-ExecStart=/www/server/nodejs/v18.20.8/bin/node /www/wwwroot/note/dist/index.js
+ExecStart=/usr/bin/env PORT=3006 /www/server/nodejs/v18.20.8/bin/node /www/wwwroot/note/dist/index.js
 Restart=always
 RestartSec=3
 
