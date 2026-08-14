@@ -332,3 +332,225 @@ MongoDB connected
 [请求] GET /api/test {}
 [请求] GET /api/medals {}
 [请求] GET /api/emojis/packs?scene=editor {}
+[请求] GET /api/analysis/overview {}
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[请求] POST /api/users/wechat-login { code: '0f3MpVFa14vHfM0sdEIa1fRIYb1MpVFu' }
+[微信登录请求] { code: '0f3MpVFa14vHfM0sdEIa1fRIYb1MpVFu' }
+[微信返回数据] {
+  session_key: 'tT94Ct+N+X266vCtlBzx/A==',
+  openid: 'oM59f5RBM_P3KgaaXRUHrTzmBP0I'
+}
+[微信登录] 老用户登录 openid: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[微信登录成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 昵称: 微信用户, 新用户: false
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[获取日记列表请求] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取日记列表成功] 共 1 篇日记
+[日记示例数据] {
+  "_id": "6a7d8f95d9587b0a60ee4116",
+  "images": [
+    "http://localhost:3005/1786613646341_6eqe9t.png"
+  ],
+  "tags": [
+    "想法"
+  ],
+  "is_public": false,
+  "is_top": false,
+  "status": 1,
+  "word_count": 92,
+  "view_count": 0,
+  "like_count": 0,
+  "comment_count": 0,
+  "score": 0,
+  "share_count": 1,
+  "user_id": "6a7d4baf0735bc7bb8c7ab64",
+  "title": "哈哈哈",
+  "content": "<p>你好<img src=\"http://localhost:3005/1786613646341_6eqe9t.png\" alt=\"image\">世界</p><p><br></p>",
+  "diary_date": "2026-08-13T00:00:00.000Z",
+  "mood": "开心",
+  "mood_detail": {
+    "emoji_id": "emoji-happy-bloom",
+    "label": "开心",
+    "resource_type": "emoji",
+    "resource_value": "😊",
+    "preview_text": "😊",
+    "preview_url": "😊",
+    "thumbnail_url": ""
+  },
+  "signature": "111",
+  "location": "",
+  "cover": "http://localhost:3005/1786613565107_str8w4.png",
+  "createdAt": "2026-08-13T09:34:13.969Z",
+  "updatedAt": "2026-08-13T09:34:22.826Z",
+  "__v": 0,
+  "id": "6a7d8f95d9587b0a60ee4116"
+}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[请求] GET /api/diaries/stats {}
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[请求] GET /api/diaries/stats {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[请求] GET /api/diaries/stats {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/diaries/stats {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[获取日记列表请求] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取日记列表成功] 共 1 篇日记
+[日记示例数据] {
+  "_id": "6a7d8f95d9587b0a60ee4116",
+  "images": [
+    "http://localhost:3005/1786613646341_6eqe9t.png"
+  ],
+  "tags": [
+    "想法"
+  ],
+  "is_public": false,
+  "is_top": false,
+  "status": 1,
+  "word_count": 92,
+  "view_count": 0,
+  "like_count": 0,
+  "comment_count": 0,
+  "score": 0,
+  "share_count": 1,
+  "user_id": "6a7d4baf0735bc7bb8c7ab64",
+  "title": "哈哈哈",
+  "content": "<p>你好<img src=\"http://localhost:3005/1786613646341_6eqe9t.png\" alt=\"image\">世界</p><p><br></p>",
+  "diary_date": "2026-08-13T00:00:00.000Z",
+  "mood": "开心",
+  "mood_detail": {
+    "emoji_id": "emoji-happy-bloom",
+    "label": "开心",
+    "resource_type": "emoji",
+    "resource_value": "😊",
+    "preview_text": "😊",
+    "preview_url": "😊",
+    "thumbnail_url": ""
+  },
+  "signature": "111",
+  "location": "",
+  "cover": "http://localhost:3005/1786613565107_str8w4.png",
+  "createdAt": "2026-08-13T09:34:13.969Z",
+  "updatedAt": "2026-08-13T09:34:22.826Z",
+  "__v": 0,
+  "id": "6a7d8f95d9587b0a60ee4116"
+}
+[请求] GET /api/users/profile {}
+[请求] GET /api/diaries/stats {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[请求] GET /api/diaries/stats {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/users/profile {}
+[请求] GET /api/diaries/stats {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/diaries/stats {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/analysis/overview {}
+[请求] GET /api/analysis/sentiment-trend?type=day&range=30 {}
+[请求] GET /api/analysis/wordcloud?limit=12 {}
+[请求] GET /api/user/analysis/writing-habit {}
+[请求] GET /api/analysis/topic-sentiment {}
+[请求] GET /api/users/profile {}
+[获取个人信息请求] 用户ID: 6a7d4baf0735bc7bb8c7ab64, 用户名: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取个人信息成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 邮箱: undefined, 角色: 0
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+认证错误: JsonWebTokenError: invalid signature
+    at D:\code\note_project\noteServer\node_modules\jsonwebtoken\verify.js:171:19
+    at getSecret (D:\code\note_project\noteServer\node_modules\jsonwebtoken\verify.js:97:14)
+    at module.exports [as verify] (D:\code\note_project\noteServer\node_modules\jsonwebtoken\verify.js:101:10)
+    at auth (D:\code\note_project\noteServer\middleware\auth.js:24:25)
+    at dispatch (D:\code\note_project\noteServer\node_modules\koa-compose\index.js:42:32)
+    at D:\code\note_project\noteServer\node_modules\koa-router\lib\router.js:372:16
+    at dispatch (D:\code\note_project\noteServer\node_modules\koa-compose\index.js:42:32)
+    at D:\code\note_project\noteServer\node_modules\koa-compose\index.js:34:12
+    at dispatch (D:\code\note_project\noteServer\node_modules\koa-router\lib\router.js:377:31)
+    at dispatch (D:\code\note_project\noteServer\node_modules\koa-compose\index.js:42:32)
+    at allowedMethods (D:\code\note_project\noteServer\node_modules\koa-router\lib\router.js:433:12)
+    at dispatch (D:\code\note_project\noteServer\node_modules\koa-compose\index.js:42:32)
+    at dispatch (D:\code\note_project\noteServer\node_modules\koa-router\lib\router.js:353:32)
+    at dispatch (D:\code\note_project\noteServer\node_modules\koa-compose\index.js:42:32)
+    at allowedMethods (D:\code\note_project\noteServer\node_modules\koa-router\lib\router.js:433:12)
+    at dispatch (D:\code\note_project\noteServer\node_modules\koa-compose\index.js:42:32)
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[请求] POST /api/users/wechat-login { code: '0a3Opy0w3XzoA73i3v2w3zqYZC3Opy0t' }
+[微信登录请求] { code: '0a3Opy0w3XzoA73i3v2w3zqYZC3Opy0t' }
+[微信返回数据] {
+  session_key: 'tT94Ct+N+X266vCtlBzx/A==',
+  openid: 'oM59f5RBM_P3KgaaXRUHrTzmBP0I'
+}
+[微信登录] 老用户登录 openid: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[微信登录成功] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I, 昵称: 微信用户, 新用户: false
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/diaries?page=1&pageSize=10 {}
+[获取日记列表请求] 用户: oM59f5RBM_P3KgaaXRUHrTzmBP0I
+[获取日记列表成功] 共 1 篇日记
+[日记示例数据] {
+  "_id": "6a7d8f95d9587b0a60ee4116",
+  "images": [
+    "http://localhost:3005/1786613646341_6eqe9t.png"
+  ],
+  "tags": [
+    "想法"
+  ],
+  "is_public": false,
+  "is_top": false,
+  "status": 1,
+  "word_count": 92,
+  "view_count": 0,
+  "like_count": 0,
+  "comment_count": 0,
+  "score": 0,
+  "share_count": 1,
+  "user_id": "6a7d4baf0735bc7bb8c7ab64",
+  "title": "哈哈哈",
+  "content": "<p>你好<img src=\"http://localhost:3005/1786613646341_6eqe9t.png\" alt=\"image\">世界</p><p><br></p>",
+  "diary_date": "2026-08-13T00:00:00.000Z",
+  "mood": "开心",
+  "mood_detail": {
+    "emoji_id": "emoji-happy-bloom",
+    "label": "开心",
+    "resource_type": "emoji",
+    "resource_value": "😊",
+    "preview_text": "😊",
+    "preview_url": "😊",
+    "thumbnail_url": ""
+  },
+  "signature": "111",
+  "location": "",
+  "cover": "http://localhost:3005/1786613565107_str8w4.png",
+  "createdAt": "2026-08-13T09:34:13.969Z",
+  "updatedAt": "2026-08-13T09:34:22.826Z",
+  "__v": 0,
+  "id": "6a7d8f95d9587b0a60ee4116"
+}
+[请求] POST /api/diaries/6a7d8f95d9587b0a60ee4116/share {}
+[请求] GET /api/user/tags?page=1&page_size=100 {}
+[请求] GET /api/emojis/packs?scene=mood {}
+[请求] POST /api/user/emojis/usage { emojiId: 'emoji-happy-bloom' }
+[请求] POST /api/user/emojis/usage { emojiId: 'emoji-sunshine-smile' }
+[请求] POST /api/user/emojis/usage { emojiId: 'emoji-calm-moon' }
