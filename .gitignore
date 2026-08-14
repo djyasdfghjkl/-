@@ -1,5 +1,6 @@
 # 依赖包
 node_modules/
+.npm-cache/
 
 # 服务器密钥与环境变量
 .env

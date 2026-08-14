@@ -20,7 +20,9 @@ test("the update command performs Git operations as the application user", () =>
   const script = readScript("deploy-dist.sh");
 
   assert.match(script, /APP_USER="\$\{APP_USER:-www\}"/);
+  assert.match(script, /NPM_CACHE_DIR="\$\{NPM_CACHE_DIR:-\$APP_DIR\/\.npm-cache\}"/);
   assert.match(script, /runuser -u "\$APP_USER" -- env "PATH=\$PATH"/);
+  assert.match(script, /NPM_CONFIG_CACHE="\$NPM_CACHE_DIR"/);
 });
 
 test("the bootstrap command refuses to replace the app without its environment file", () => {

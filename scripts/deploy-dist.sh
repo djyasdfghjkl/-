@@ -6,16 +6,23 @@ BRANCH="${BRANCH:-main}"
 NODE_BIN="${NODE_BIN:-/www/server/nodejs/v18.20.8/bin}"
 HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:3006/api-docs}"
 APP_USER="${APP_USER:-www}"
+NPM_CACHE_DIR="${NPM_CACHE_DIR:-$APP_DIR/.npm-cache}"
 PREVIOUS_REF=""
 
 export PATH="$NODE_BIN:$PATH"
 unset npm_config_prefix NPM_CONFIG_PREFIX
 
+if [ "$(id -u)" -eq 0 ]; then
+  install -d -m 750 -o "$APP_USER" -g "$APP_USER" "$NPM_CACHE_DIR"
+else
+  mkdir -p "$NPM_CACHE_DIR"
+fi
+
 run_as_app() {
   if [ "$(id -u)" -eq 0 ]; then
-    runuser -u "$APP_USER" -- env "PATH=$PATH" "$@"
+    runuser -u "$APP_USER" -- env "PATH=$PATH" "NPM_CONFIG_CACHE=$NPM_CACHE_DIR" "$@"
   else
-    "$@"
+    NPM_CONFIG_CACHE="$NPM_CACHE_DIR" "$@"
   fi
 }
 

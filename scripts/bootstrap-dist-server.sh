@@ -38,7 +38,7 @@ if [ -d "$APP_DIR/uploads" ]; then cp -a "$APP_DIR/uploads" "$NEXT_DIR/uploads";
 if [ -d "$APP_DIR/logs" ]; then cp -a "$APP_DIR/logs" "$NEXT_DIR/logs"; fi
 
 cd "$NEXT_DIR"
-npm ci --omit=dev --no-audit --no-fund
+NPM_CONFIG_CACHE="$NEXT_DIR/.npm-cache" npm ci --omit=dev --no-audit --no-fund
 node --check index.js
 
 rm -f /tmp/note-dist-bootstrap.out /tmp/note-dist-bootstrap.err
