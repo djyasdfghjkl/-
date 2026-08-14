@@ -25,6 +25,17 @@ test("the update command performs Git operations as the application user", () =>
   assert.match(script, /NPM_CONFIG_CACHE="\$NPM_CACHE_DIR"/);
 });
 
+test("the update command preserves the deployed environment file across Git resets", () => {
+  const script = readScript("deploy-dist.sh");
+
+  assert.match(script, /ENV_FILE="\$APP_DIR\/\.env"/);
+  assert.match(script, /ENV_BACKUP="\$\(mktemp/);
+  assert.match(script, /cp -f "\$ENV_FILE" "\$ENV_BACKUP"/);
+  assert.match(script, /cp -f "\$ENV_BACKUP" "\$ENV_FILE"/);
+  assert.match(script, /git status --short --untracked-files=no/);
+  assert.match(script, /local changes beyond \.env/);
+});
+
 test("the bootstrap command refuses to replace the app without its environment file", () => {
   const script = readScript("bootstrap-dist-server.sh");
 
@@ -45,4 +56,13 @@ test("the bootstrap service forces its dedicated port after loading .env", () =>
     script,
     /ExecStart=\/usr\/bin\/env PORT=3006 \/www\/server\/nodejs\/v18\.20\.8\/bin\/node/,
   );
+});
+
+test("the post-receive hook deploys only pushes to main", () => {
+  const script = readScript("post-receive-hook.sh");
+
+  assert.match(script, /TARGET_BRANCH="\$\{TARGET_BRANCH:-refs\/heads\/main\}"/);
+  assert.match(script, /if \[ "\$refname" != "\$TARGET_BRANCH" \]; then/);
+  assert.match(script, /DEPLOY_COMMAND="\$\{DEPLOY_COMMAND:-\/usr\/local\/bin\/update-note-dist\}"/);
+  assert.match(script, />>"\$LOG_FILE" 2>&1/);
 });
