@@ -39,6 +39,14 @@ app.use(
 
 app.use(bodyParser());
 
+app.use(async (ctx, next) => {
+  if (ctx.path === "/dist/api" || ctx.path.startsWith("/dist/api/")) {
+    ctx.path = ctx.path.replace(/^\/dist/, "") || "/";
+  }
+
+  await next();
+});
+
 const serveUploads = serve(uploadRoot);
 const serveAppStatic = serve(appStaticRoot);
 
@@ -64,7 +72,7 @@ app.use(async (ctx, next) => {
     console.log("[请求]", ctx.method, ctx.url, ctx.request.body);
     await next();
 
-    if (!ctx.body) {
+    if (!ctx.body && Array.isArray(ctx.matched) && ctx.matched.length > 0) {
       ctx.body = {
         success: true,
         message: "操作成功",
